@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using OnlineGame.Core;
 using OnlineGame.Utility;
-using OnlineGame.Utility.Wizards;
 
 namespace OnlineGame.Network.Client
 {

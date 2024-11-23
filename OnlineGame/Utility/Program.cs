@@ -1,6 +1,5 @@
 ﻿using System;
 using OnlineGame.Network;
-using OnlineGame.Utility.Wizards;
 
 namespace OnlineGame.Utility
 {
@@ -15,9 +14,20 @@ namespace OnlineGame.Utility
         {
             SystemWizard sysWiz = SystemWizard.Instance;
 
+            Console.WriteLine("Press enter to start.");
+
+            Console.ReadLine();
+
             sysWiz.StartAll();
             sysWiz.ListProcesses();
-            Console.ReadLine();
+
+            string? response = string.Empty;
+
+            while(string.IsNullOrEmpty(response))
+            {
+                sysWiz.ListProcesses();
+                response = Console.ReadLine();
+            }
 
             sysWiz.StopAll();
             sysWiz.ListProcesses();

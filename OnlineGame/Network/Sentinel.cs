@@ -1,9 +1,10 @@
-﻿using OnlineGame.Core;
-using OnlineGame.Network;
+﻿using OnlineGame.Network;
 using OnlineGame.Utility.Types;
 using OnlineGame.Utility;
 using System.Net.Sockets;
 using System.Net;
+using OnlineGame.Core.Interfaces;
+using OnlineGame.Core.Types;
 
 namespace OnlineGame.Network
 {

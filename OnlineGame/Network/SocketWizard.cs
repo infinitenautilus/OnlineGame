@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OnlineGame.Core;
+using OnlineGame.Core.Interfaces;
+using OnlineGame.Core.Types;
 using OnlineGame.Network.Client;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;

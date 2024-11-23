@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using OnlineGame.Core;
+using OnlineGame.Core.Interfaces;
+using OnlineGame.Core.Types;
 using OnlineGame.Network;
 using OnlineGame.Utility.Types;
 
-namespace OnlineGame.Utility.Wizards
+namespace OnlineGame.Utility
 {
     public sealed class SystemWizard
     {
@@ -24,7 +25,7 @@ namespace OnlineGame.Utility.Wizards
         // Private constructor to enforce singleton
         private SystemWizard()
         {
-            
+
 
         }
 
@@ -45,7 +46,7 @@ namespace OnlineGame.Utility.Wizards
 
         public ISubsystem GetSubsystem(string name)
         {
-            if(_subsystems.TryGetValue(name, out ISubsystem? subsystem))
+            if (_subsystems.TryGetValue(name, out ISubsystem? subsystem))
             {
                 return subsystem;
             }
@@ -60,6 +61,7 @@ namespace OnlineGame.Utility.Wizards
                 _subsystems.Add(SocketWizard.Instance.Name, SocketWizard.Instance);
                 _subsystems.Add(Sentinel.Instance.Name, Sentinel.Instance);
                 _subsystems.Add(GateKeeper.Instance.Name, GateKeeper.Instance);
+                _subsystems.Add(FilterWizard.Instance.Name, FilterWizard.Instance);
             }
 
             foreach (ISubsystem subsystem in _subsystems.Values)
@@ -114,7 +116,7 @@ namespace OnlineGame.Utility.Wizards
             {
                 StopAll();
                 ListProcesses();
-                
+
                 Scribe.BeginShutdown();
                 SocketWizard.Instance.Stop();
                 Sentinel.Instance.Stop();
@@ -124,7 +126,7 @@ namespace OnlineGame.Utility.Wizards
                 Scribe.Scry("Application shutdown complete.");
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Exception: {ex.Message} in {ex.StackTrace}");
             }

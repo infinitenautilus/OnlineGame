@@ -33,6 +33,22 @@ namespace OnlineGame.Utility
             }
         }
 
+        public static string PLAYERSTORAGE
+        {
+            get
+            {
+                return $@"{STORAGEDIR}Players\";
+            }
+        }
+
+        public static string BANNEDNAMESFILE
+        {
+            get
+            {
+                return $@"{STORAGEDIR}CensoredNames.csv";
+            }
+        }
+
         public static string LOGFILE
         {
             get

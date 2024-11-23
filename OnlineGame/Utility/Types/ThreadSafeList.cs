@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace OnlineGame.Utility.Types
 {
@@ -25,6 +26,23 @@ namespace OnlineGame.Utility.Types
             try
             {
                 _internalList.Add(item);
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
+        /// Adds a range of items to the list in a thread-safe manner.
+        /// </summary>
+        /// <param name="items">The collection of items to add.</param>
+        public void AddRange(IEnumerable<T> items)
+        {
+            _lock.EnterWriteLock();
+            try
+            {
+                _internalList.AddRange(items);
             }
             finally
             {

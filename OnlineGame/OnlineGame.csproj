@@ -10,7 +10,6 @@
   <ItemGroup>
     <Folder Include="Game\" />
     <Folder Include="Config\" />
-    <Folder Include="Utility\Interfaces\" />
   </ItemGroup>
 
 </Project>
