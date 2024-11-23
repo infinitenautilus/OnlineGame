@@ -1,7 +1,7 @@
 ﻿using System;
 using OnlineGame.Network;
 
-namespace OnlineGame.Utility
+namespace OnlineGame.Core.Processes
 {
     public class Program
     {
@@ -23,7 +23,7 @@ namespace OnlineGame.Utility
 
             string? response = string.Empty;
 
-            while(string.IsNullOrEmpty(response))
+            while (string.IsNullOrEmpty(response))
             {
                 sysWiz.ListProcesses();
                 response = Console.ReadLine();

@@ -4,9 +4,10 @@ using System.IO;
 using System.Linq;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Types;
+using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
 
-namespace OnlineGame.Utility
+namespace OnlineGame.Core.Processes
 {
     /// <summary>
     /// The FilterWizard class manages filtering operations for banned words and validates usernames.

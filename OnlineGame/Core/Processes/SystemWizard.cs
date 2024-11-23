@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Types;
 using OnlineGame.Network;
+using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
 
-namespace OnlineGame.Utility
+namespace OnlineGame.Core.Processes
 {
     public sealed class SystemWizard
     {
@@ -58,10 +60,7 @@ namespace OnlineGame.Utility
         {
             if (_subsystems.Count == 0)
             {
-                _subsystems.Add(SocketWizard.Instance.Name, SocketWizard.Instance);
-                _subsystems.Add(Sentinel.Instance.Name, Sentinel.Instance);
-                _subsystems.Add(GateKeeper.Instance.Name, GateKeeper.Instance);
-                _subsystems.Add(FilterWizard.Instance.Name, FilterWizard.Instance);
+                LoadSubsystemsFromNamespace("OnlineGame.Core.Processes");
             }
 
             foreach (ISubsystem subsystem in _subsystems.Values)
@@ -132,6 +131,32 @@ namespace OnlineGame.Utility
             }
         }
 
+        /// <summary>
+        /// Loads all subsystems implementing ISubsystem from the specified namespace.
+        /// </summary>
+        /// <param name="namespaceName">The namespace to scan for subsystems.</param>
+        private void LoadSubsystemsFromNamespace(string namespaceName)
+        {
+            // Get all types in the current assembly
+            Assembly assembly = Assembly.GetExecutingAssembly();
+
+            // Find types implementing ISubsystem in the specified namespace
+            IEnumerable<Type> subsystemTypes = assembly.GetTypes()
+                .Where(type => type.Namespace == namespaceName &&
+                               typeof(ISubsystem).IsAssignableFrom(type) &&
+                               !type.IsAbstract && type.IsClass);
+
+            foreach (Type subsystemType in subsystemTypes)
+            {
+                // Get the singleton instance (assuming the convention is Instance property)
+                PropertyInfo? instanceProperty = subsystemType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+
+                if (instanceProperty?.GetValue(null) is ISubsystem subsystem)
+                {
+                    _subsystems[subsystem.Name] = subsystem;
+                }
+            }
+        }
         private void OnSubsystemStateChanged(object? sender, SystemEventArgs e)
         {
             Notify(e.Type, e.Source, e.Message);

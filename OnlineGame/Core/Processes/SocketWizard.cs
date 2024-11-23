@@ -8,7 +8,7 @@ using OnlineGame.Network.Client;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
 
-namespace OnlineGame.Network
+namespace OnlineGame.Core.Processes
 {
     public sealed class SocketWizard : ISubsystem
     {
@@ -105,7 +105,7 @@ namespace OnlineGame.Network
                 {
                     await client.SendMessageAsync(message);
                 }
-             
+
             }
             catch (Exception ex)
             {
