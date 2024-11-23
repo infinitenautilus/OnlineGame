@@ -1,11 +1,9 @@
-﻿using System;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-using OnlineGame.Core;
-using OnlineGame.Network.Client;
+﻿using OnlineGame.Core;
+using OnlineGame.Network;
+using OnlineGame.Utility.Types;
 using OnlineGame.Utility;
+using System.Net.Sockets;
+using System.Net;
 
 namespace OnlineGame.Network
 {
@@ -20,15 +18,13 @@ namespace OnlineGame.Network
         private static readonly IPAddress _hostAddress = Constellations.HOSTADDRESS;
         private readonly Socket _socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-        private readonly GateKeeper? _connectionManager;
-
-        private readonly SocketWizard _socketWizard = SocketWizard.Instance;
-
         public SubsystemState CurrentSystemState { get; private set; } = SubsystemState.Stopped;
 
         private CancellationTokenSource _cancellationTokenSource = new();
 
         public event EventHandler<SystemEventArgs>? StateChanged;
+
+        private Sentinel() { }
 
         public void Start()
         {
@@ -49,12 +45,14 @@ namespace OnlineGame.Network
                 _socket.Listen(10);
 
                 Scribe.Scry($"Listening for connections on {_hostAddress}, port: {_hostPort}");
-
                 RaiseStateChanged("Sentinel started successfully.");
+                
+                _ = AcceptConnectionsAsync(_cancellationTokenSource.Token);
             }
             catch (Exception ex)
             {
                 Scribe.Error(ex);
+                CurrentSystemState = SubsystemState.Error;
             }
         }
 
@@ -73,10 +71,7 @@ namespace OnlineGame.Network
                 // Signal cancellation to all tasks
                 _cancellationTokenSource.Cancel();
 
-                // Unsubscribe all clients
-                _socketWizard.UnsubscribeAll();
-
-                // Safely shutdown and close the socket
+                // Close and shutdown the socket
                 if (_socket.Connected)
                 {
                     try
@@ -103,6 +98,39 @@ namespace OnlineGame.Network
             {
                 Scribe.Error(ex, "Error stopping Sentinel.");
                 CurrentSystemState = SubsystemState.Error;
+            }
+        }
+
+        private async Task AcceptConnectionsAsync(CancellationToken token)
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    var acceptTask = _socket.AcceptAsync(CancellationToken.None).AsTask();
+                    var completedTask = await Task.WhenAny(acceptTask, Task.Delay(-1, token));
+
+                    if (completedTask == acceptTask)
+                    {
+                        var clientSocket = acceptTask.Result;
+                        Scribe.Scry($"New client accepted from {clientSocket.RemoteEndPoint}");
+
+                        // Pass client to GateKeeper for further handling
+                        GateKeeper.Instance.HandleClient(clientSocket);
+                    }
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected during shutdown
+            }
+            catch (OperationCanceledException)
+            {
+                // Graceful cancellation
+            }
+            catch (Exception ex)
+            {
+                Scribe.Error(ex, "Error accepting connections in Sentinel.");
             }
         }
 

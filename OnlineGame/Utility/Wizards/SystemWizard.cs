@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using OnlineGame.Core;
 using OnlineGame.Network;
+using OnlineGame.Utility.Types;
 
 namespace OnlineGame.Utility.Wizards
 {
@@ -58,6 +59,7 @@ namespace OnlineGame.Utility.Wizards
             {
                 _subsystems.Add(SocketWizard.Instance.Name, SocketWizard.Instance);
                 _subsystems.Add(Sentinel.Instance.Name, Sentinel.Instance);
+                _subsystems.Add(GateKeeper.Instance.Name, GateKeeper.Instance);
             }
 
             foreach (ISubsystem subsystem in _subsystems.Values)
