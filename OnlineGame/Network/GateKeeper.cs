@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using OnlineGame.Core.Interfaces;
+using OnlineGame.Core.Processes;
 using OnlineGame.Core.Types;
 using OnlineGame.Network.Client;
 using OnlineGame.Utility;
@@ -68,7 +69,6 @@ namespace OnlineGame.Network
             socketsJoined.Add(clientSocket);
 
             _ = ProcessClientAsync(clientSocket);
-            
         }
 
         private static async Task ProcessClientAsync(Socket clientSocket)
@@ -81,14 +81,14 @@ namespace OnlineGame.Network
                 Scribe.Scry($"Incoming client: {client.Name}");
 
                 // Send welcome message
-                await client.SendMessageAsync("Welcome to the Game");
+                await client.SendMessageAsync($"Welcome to {Constellations.GAMENAME}");
 
                 // Ask for character name
                 await client.SendMessageAsync("Please enter your character name:");
                 string? characterName = await client.ReceiveMessageAsync();
 
                 // Validate character name
-                while (string.IsNullOrWhiteSpace(characterName))
+                while (string.IsNullOrWhiteSpace(characterName) || FilterWizard.Instance.IsNameBanned(characterName))
                 {
                     await client.SendMessageAsync("Invalid character name. Please try again:");
                     characterName = await client.ReceiveMessageAsync();

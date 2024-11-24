@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using OnlineGame.Core.Interfaces;
+using OnlineGame.Core.Processes;
 using OnlineGame.Core.Types;
 using OnlineGame.Network;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
 
-namespace OnlineGame.Core.Processes
+namespace OnlineGame.Core
 {
     public sealed class SystemWizard
     {
@@ -109,7 +110,7 @@ namespace OnlineGame.Core.Processes
                 : throw new KeyNotFoundException($"Subsystem {name} not found.");
         }
 
-        public async Task Shutdown()
+        public void Shutdown()
         {
             try
             {
@@ -121,7 +122,7 @@ namespace OnlineGame.Core.Processes
                 Sentinel.Instance.Stop();
 
                 Scribe.Scry("Shutting down subsystems...");
-                await Scribe.CloseWriter();
+                Scribe.CloseWriter();
                 Scribe.Scry("Application shutdown complete.");
 
             }
@@ -137,6 +138,7 @@ namespace OnlineGame.Core.Processes
         /// <param name="namespaceName">The namespace to scan for subsystems.</param>
         private void LoadSubsystemsFromNamespace(string namespaceName)
         {
+            Console.WriteLine($"LoadSubsystemsFromNameSpace {namespaceName}");
             // Get all types in the current assembly
             Assembly assembly = Assembly.GetExecutingAssembly();
 
@@ -157,6 +159,7 @@ namespace OnlineGame.Core.Processes
                 }
             }
         }
+
         private void OnSubsystemStateChanged(object? sender, SystemEventArgs e)
         {
             Notify(e.Type, e.Source, e.Message);

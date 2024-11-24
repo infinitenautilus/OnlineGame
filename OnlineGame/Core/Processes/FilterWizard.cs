@@ -13,7 +13,7 @@ namespace OnlineGame.Core.Processes
     /// The FilterWizard class manages filtering operations for banned words and validates usernames.
     /// Implements ISubsystem for monitoring and lifecycle management.
     /// </summary>
-    public sealed class FilterWizard : ISubsystem
+    public class FilterWizard : ISubsystem
     {
         // Singleton instance
         private static readonly Lazy<FilterWizard> _instance = new(() => new FilterWizard());
@@ -40,7 +40,10 @@ namespace OnlineGame.Core.Processes
         public ThreadSafeList<string> BannedWords { get; private set; } = new();
 
         // Private constructor for singleton
-        private FilterWizard() { }
+        private FilterWizard() 
+        {
+            LoadBannedWordsFromCsv(Constellations.BANNEDNAMESFILE);
+        }
 
         /// <summary>
         /// Starts the FilterWizard subsystem.
@@ -148,18 +151,16 @@ namespace OnlineGame.Core.Processes
         /// Loads banned words from a CSV file.
         /// </summary>
         /// <param name="filePath">The path to the CSV file.</param>
-        public void LoadBannedWordsFromCsv(string filePath)
+        private async void LoadBannedWordsFromCsv(string filePath)
         {
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Banned words file not found at: {filePath}");
 
-            var words = File.ReadAllLines(filePath)
-                            .Select(line => line.Trim())
-                            .Where(line => !string.IsNullOrWhiteSpace(line))
-                            .Distinct(StringComparer.OrdinalIgnoreCase);
+            string[] fileContents = await File.ReadAllLinesAsync(filePath);
+
 
             BannedWords.Clear();
-            BannedWords.AddRange(words);
+            BannedWords.AddRange(fileContents);
         }
 
         /// <summary>

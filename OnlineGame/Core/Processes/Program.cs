@@ -1,5 +1,6 @@
 ﻿using System;
 using OnlineGame.Network;
+using OnlineGame.Utility;
 
 namespace OnlineGame.Core.Processes
 {
@@ -12,25 +13,29 @@ namespace OnlineGame.Core.Processes
 
         public static void Main()
         {
-            SystemWizard sysWiz = SystemWizard.Instance;
-
             Console.WriteLine("Press enter to start.");
 
             Console.ReadLine();
 
-            sysWiz.StartAll();
-            sysWiz.ListProcesses();
+            SystemWizard.Instance.StartAll();
+
+            Thread.Sleep(1000);
+
+            SystemWizard.Instance.ListProcesses();
+
+            Console.WriteLine($"{Scribe.IsShuttingDown}");
 
             string? response = string.Empty;
 
             while (string.IsNullOrEmpty(response))
             {
-                sysWiz.ListProcesses();
+                SystemWizard.Instance.ListProcesses();
                 response = Console.ReadLine();
+                Console.WriteLine($"{Scribe.IsShuttingDown}");
             }
 
-            sysWiz.StopAll();
-            sysWiz.ListProcesses();
+            SystemWizard.Instance.StopAll();
+            SystemWizard.Instance.ListProcesses();
 
             Console.WriteLine("Goodbye.");
         }

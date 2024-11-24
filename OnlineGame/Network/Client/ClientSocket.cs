@@ -3,8 +3,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using OnlineGame.Core;
 using OnlineGame.Core.Processes;
 using OnlineGame.Utility;
+
 
 namespace OnlineGame.Network.Client
 {

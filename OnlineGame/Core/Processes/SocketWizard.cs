@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Types;
+using OnlineGame.Network;
 using OnlineGame.Network.Client;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
@@ -29,6 +30,7 @@ namespace OnlineGame.Core.Processes
         // Private constructor to enforce singleton
         private SocketWizard()
         {
+
         }
 
         public void Start()
