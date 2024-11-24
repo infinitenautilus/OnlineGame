@@ -1,64 +1,71 @@
 ﻿using System;
 using System.IO;
-using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace OnlineGame.Utility
 {
     public static class Scribe
     {
-        private static readonly StreamWriter? _writer = new(Constellations.LOGFILE, true) { AutoFlush = true };
-        private static int _isShuttingDown = 0; // Use an atomic integer for thread-safe shutdown flag.
-        private static readonly object _writeLock = new(); // Lock object for writer synchronization.
+        private static TextWriter? _logFileWriter; // Optional file writer
+        private static readonly object _writeLock = new(); // For thread-safe operations
+        private static int _isShuttingDown = 0;
 
+        /// <summary>
+        /// Indicates if the application is shutting down.
+        /// </summary>
         public static bool IsShuttingDown => Interlocked.CompareExchange(ref _isShuttingDown, 0, 0) == 1;
 
         /// <summary>
-        /// Logs a standard message with gray console output.
+        /// Initializes the Scribe logging system with an optional file writer.
         /// </summary>
+        /// <param name="logFilePath">Path to the log file. If null, no file logging is performed.</param>
+        public static void Initialize(string? logFilePath = null)
+        {
+            if (!string.IsNullOrEmpty(logFilePath))
+            {
+                _logFileWriter = new StreamWriter(logFilePath, append: true) { AutoFlush = true };
+            }
+        }
+
+        /// <summary>
+        /// Logs a general message with gray console output.
+        /// </summary>
+        /// <param name="message">The message to log.</param>
         public static void Scry(string message)
         {
-            LogToConsole(message, ConsoleColor.Gray);
-            WriteMessage(message);
+            LogMessage(message);
         }
 
         /// <summary>
         /// Logs a notification with yellow console output.
         /// </summary>
+        /// <param name="message">The notification message to log.</param>
         public static void Notification(string message)
         {
-            LogToConsole(message, ConsoleColor.Yellow);
-            WriteMessage(message);
+            LogNotificationMessage(message);
         }
 
         /// <summary>
-        /// Handles SocketException and logs relevant details.
+        /// Logs an error message with red console output.
         /// </summary>
-        public static void HandleSocketException(SocketException ex)
+        /// <param name="message">The error message to log.</param>
+        public static void Error(Exception ex, string message)
         {
-            Error(ex, "SocketException occurred.");
+            LogErrorMessage("-*EXCEPTION ENCOUNTER*-");
+            LogErrorMessage($"Message; {ex.Message}");
+            LogErrorMessage($"StackTrace: {ex.StackTrace}");
+            LogErrorMessage($"EXCEPTION CUSTOM MESSAGE: {message}");
+        }
+
+        public static void Error(Exception ex)
+        {
+            LogErrorMessage("-*EXCEPTION ENCOUNTER*-");
+            LogErrorMessage($"Message; {ex.Message}");
+            LogErrorMessage($"StackTrace: {ex.StackTrace}");
         }
 
         /// <summary>
-        /// Handles a general exception with a specific context message.
-        /// </summary>
-        public static void HandleGeneralException(Exception ex, string context = "")
-        {
-            Error(ex, string.IsNullOrEmpty(context) ? $"Unexpected error: {ex.Message}" : $"Unexpected error in {context}");
-        }
-
-        /// <summary>
-        /// Logs an exception with optional custom message.
-        /// </summary>
-        public static void Error(Exception ex, string customMessage = "")
-        {
-            LogToConsole(customMessage, ConsoleColor.Red);
-            LogExceptionDetails(ex, customMessage);
-        }
-
-        /// <summary>
-        /// Begins the shutdown sequence and logs the event.
+        /// Begins the shutdown sequence and logs a shutdown message.
         /// </summary>
         public static void BeginShutdown()
         {
@@ -69,79 +76,72 @@ namespace OnlineGame.Utility
         }
 
         /// <summary>
-        /// Flushes, closes, and disposes of the writer safely.
+        /// Closes the log file writer, if one is in use.
         /// </summary>
-        public static void CloseWriter()
+        public static void Close()
         {
-            if (_writer != null)
+            if (_logFileWriter == null) return;
+
+            lock (_writeLock)
             {
-                lock (_writeLock)
+                try
                 {
-                    try
-                    {
-                        if (_writer.BaseStream.CanWrite)
-                        {
-                            _writer.Flush();
-                        }
-                        Scry("Scribe: Writer flushed successfully.");
-                        _writer.Close();
-                        Scry("Scribe: Writer closed successfully.");
-                        _writer.Dispose();
-                        Scry("Scribe: Writer disposed successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error closing writer: {ex.Message}\nStackTrace: {ex.StackTrace}");
-                    }
+                    _logFileWriter.Flush();
+                    _logFileWriter.Close();
+                    _logFileWriter.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to close log file writer: {ex.Message}");
                 }
             }
         }
 
         /// <summary>
-        /// Writes a log message to the writer with caller information.
+        /// Formats and logs a message to the console and optionally to a log file.
         /// </summary>
-        private static void WriteMessage(
-            string message,
-            [System.Runtime.CompilerServices.CallerMemberName] string callerName = "",
-            [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
-            [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
+        /// <param name="message">The message to log.</param>
+        /// <param name="color">The color for console output.</param>
+        private static void LogMessage(string message)
         {
-            if (IsShuttingDown)
-                return;
+            Safelog(TimeStampMessage(message), ConsoleColor.White);
+        }
 
-            string className = Path.GetFileNameWithoutExtension(callerFilePath);
-            string formattedMessage = $"[{Constellations.TIMESTAMP}] {message} [from] {className}.{callerName}, Line: {callerLineNumber}";
+        private static void LogNotificationMessage(string message)
+        {
+            Safelog(TimeStampMessage(message), ConsoleColor.Yellow);            
+        }
 
-            lock (_writeLock)
+        private static void LogErrorMessage(string message)
+        {
+            Safelog(TimeStampMessage(message), ConsoleColor.Red);
+        }
+
+        private static void Safelog(string message, ConsoleColor consoleColor)
+        {
+            if (IsShuttingDown) return;
+
+            try
             {
-                Console.WriteLine(formattedMessage);
-                _writer?.WriteLine(formattedMessage);
+                lock (_writeLock)
+                {
+                    Console.ForegroundColor = consoleColor;
+                    Console.WriteLine(message);
+                    Console.ForegroundColor = ConsoleColor.White;
+
+                    // Log to the file if enabled
+                    _logFileWriter?.WriteLine(message);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"EXCEPTION ENCOUNTERED IN SCRIBE SAFELOG\b{ex.Message}\n{ex.StackTrace}");
             }
         }
 
-        /// <summary>
-        /// Logs a message to the console with a specific color.
-        /// </summary>
-        private static void LogToConsole(string message, ConsoleColor color)
+        private static string TimeStampMessage(string message)
         {
-            lock (_writeLock)
-            {
-                Console.ForegroundColor = color;
-                Console.WriteLine(message);
-                Console.ResetColor();
-            }
-        }
-
-        /// <summary>
-        /// Logs detailed exception information.
-        /// </summary>
-        private static void LogExceptionDetails(Exception ex, string customMessage)
-        {
-            string shutdownInfo = IsShuttingDown ? " (During Shutdown)" : "";
-            WriteMessage($"EXCEPTION ENCOUNTERED{shutdownInfo}{(string.IsNullOrEmpty(customMessage) ? "" : $": {customMessage}")}");
-            WriteMessage($"Message: {ex.Message}");
-            WriteMessage($"StackTrace: {ex.StackTrace}");
-            WriteMessage($"Source: {ex.Source}");
+            return $"[ {Constellations.TIMESTAMP} ] - [{message}] ";
         }
     }
 }

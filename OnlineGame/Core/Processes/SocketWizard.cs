@@ -88,7 +88,7 @@ namespace OnlineGame.Core.Processes
         {
             try
             {
-                foreach (var client in _currentClients.ToList()) // Safe enumeration
+                foreach (ClientSocket client in _currentClients.ToList()) // Safe enumeration
                 {
                     Unsubscribe(client);
                 }
@@ -103,7 +103,7 @@ namespace OnlineGame.Core.Processes
         {
             try
             {
-                foreach (var client in _currentClients.ToList())
+                foreach (ClientSocket client in _currentClients.ToList())
                 {
                     await client.SendMessageAsync(message);
                 }
@@ -111,7 +111,7 @@ namespace OnlineGame.Core.Processes
             }
             catch (Exception ex)
             {
-                Scribe.Error(ex, "Error in BroadcastMessage.");
+                Scribe.Error(ex);
             }
         }
 

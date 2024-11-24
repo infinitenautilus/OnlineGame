@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Net;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Types;
+using OnlineGame.Network.Client;
 
 namespace OnlineGame.Network
 {
@@ -113,8 +114,9 @@ namespace OnlineGame.Network
 
                     if (completedTask == acceptTask)
                     {
-                        var clientSocket = acceptTask.Result;
-                        Scribe.Scry($"New client accepted from {clientSocket.RemoteEndPoint}");
+                        Socket clientSocket = acceptTask.Result;
+
+                        Scribe.Scry($"New client accepted from {clientSocket.AddressFamily}");
 
                         // Pass client to GateKeeper for further handling
                         GateKeeper.Instance.HandleClient(clientSocket);

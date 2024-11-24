@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
-using System.Text;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Processes;
 using OnlineGame.Core.Types;
@@ -16,29 +17,42 @@ namespace OnlineGame.Core
         // Singleton instance
         private static readonly Lazy<SystemWizard> _instance = new(() => new SystemWizard());
 
-        // Private dictionary for subsystems
-        private readonly Dictionary<string, ISubsystem> _subsystems = [];
+        // Thread-safe dictionary for subsystems
+        private readonly ConcurrentDictionary<string, ISubsystem> _subsystems = new();
 
         // Singleton instance accessor
         public static SystemWizard Instance => _instance.Value;
 
-        // Event for notifications
-        public event EventHandler<SystemEventArgs>? NotificationSent;
+        // Event for notifications (thread-safe subscription)
+        private event EventHandler<SystemEventArgs>? SafeNotificationSent;
+        public event EventHandler<SystemEventArgs>? NotificationSent
+        {
+            add
+            {
+                lock (_eventLock)
+                {
+                    SafeNotificationSent += value;
+                }
+            }
+            remove
+            {
+                lock (_eventLock)
+                {
+                    SafeNotificationSent -= value;
+                }
+            }
+        }
+
+        private readonly object _eventLock = new();
 
         // Private constructor to enforce singleton
-        private SystemWizard()
-        {
-
-
-        }
+        private SystemWizard() { }
 
         public void RegisterSubsystem(ISubsystem subsystem)
         {
-            if (!_subsystems.ContainsKey(subsystem.Name))
+            if (_subsystems.TryAdd(subsystem.Name, subsystem))
             {
-                _subsystems[subsystem.Name] = subsystem;
                 subsystem.StateChanged += OnSubsystemStateChanged;
-
                 Scribe.Notification($"Subsystem {subsystem.Name} registered.");
             }
             else
@@ -54,27 +68,35 @@ namespace OnlineGame.Core
                 return subsystem;
             }
 
-            throw new KeyNotFoundException($"Subsystem {name} not found in GetSubSystem(string name).");
+            throw new KeyNotFoundException($"Subsystem {name} not found in GetSubsystem(string name).");
         }
 
         public void StartAll()
         {
-            if (_subsystems.Count == 0)
+            try
             {
-                LoadSubsystemsFromNamespace("OnlineGame.Core.Processes");
-            }
+                if (_subsystems.IsEmpty)
+                {
+                    LoadSubsystemsFromNamespace("OnlineGame.Core.Processes");
+                    _subsystems.TryAdd(Sentinel.Instance.Name, Sentinel.Instance);
+                }
 
-            foreach (ISubsystem subsystem in _subsystems.Values)
+                foreach (ISubsystem subsystem in _subsystems.Values)
+                {
+                    try
+                    {
+                        subsystem.Start();
+                        Scribe.Notification($"Subsystem {subsystem.Name} started.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Scribe.Error(ex, $"Error starting subsystem {subsystem.Name}");
+                    }
+                }
+            }
+            catch (Exception ex)
             {
-                try
-                {
-                    subsystem.Start();
-                    Scribe.Notification($"Subsystem {subsystem.Name} started.");
-                }
-                catch (Exception ex)
-                {
-                    Scribe.Error(ex, $"Error starting subsystem {subsystem.Name}");
-                }
+                Scribe.Error(ex);
             }
         }
 
@@ -96,7 +118,6 @@ namespace OnlineGame.Core
 
         public void ListProcesses()
         {
-
             foreach (ISubsystem subsystem in _subsystems.Values)
             {
                 Scribe.Notification($"{subsystem.Name} - {subsystem.CurrentSystemState}");
@@ -116,15 +137,13 @@ namespace OnlineGame.Core
             {
                 StopAll();
                 ListProcesses();
-
-                Scribe.BeginShutdown();
+                
                 SocketWizard.Instance.Stop();
                 Sentinel.Instance.Stop();
 
                 Scribe.Scry("Shutting down subsystems...");
-                Scribe.CloseWriter();
+                Scribe.Close();
                 Scribe.Scry("Application shutdown complete.");
-
             }
             catch (Exception ex)
             {
@@ -168,7 +187,10 @@ namespace OnlineGame.Core
         private void Notify(string type, string source, string message)
         {
             SystemEventArgs eventArgs = new(type, source, message);
-            NotificationSent?.Invoke(this, eventArgs);
+            lock (_eventLock)
+            {
+                SafeNotificationSent?.Invoke(this, eventArgs);
+            }
             Scribe.Notification($"Event Notification: {type} - {source} - {message}");
         }
     }

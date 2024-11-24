@@ -73,7 +73,7 @@ namespace OnlineGame.Network
 
         private static async Task ProcessClientAsync(Socket clientSocket)
         {
-            var client = new ClientSocket(clientSocket);
+            ClientSocket client = new(clientSocket);
 
             try
             {
