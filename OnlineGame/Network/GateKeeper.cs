@@ -78,7 +78,7 @@ namespace OnlineGame.Network
             try
             {
                 // Log incoming connection
-                Scribe.Scry($"Incoming client: {client.Name}");
+                Scribe.Scry($"Incoming client: {client.Name} from {client.SocketAddressString}");
 
                 // Send welcome message
                 await client.SendMessageAsync($"Welcome to {Constellations.GAMENAME}");
@@ -88,11 +88,12 @@ namespace OnlineGame.Network
                 string? characterName = await client.ReceiveMessageAsync();
 
                 // Validate character name
-                while (string.IsNullOrWhiteSpace(characterName) || FilterWizard.Instance.IsNameBanned(characterName))
+                while (string.IsNullOrWhiteSpace(characterName) || FilterWizard.IsValidUsername(characterName))
                 {
                     await client.SendMessageAsync("Invalid character name. Please try again:");
                     characterName = await client.ReceiveMessageAsync();
                 }
+
 
                 // Check if the player exists
                 string playerFilePath = Path.Combine(Constellations.PLAYERSTORAGE, $"{characterName}.txt");

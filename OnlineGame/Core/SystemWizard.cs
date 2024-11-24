@@ -23,6 +23,9 @@ namespace OnlineGame.Core
         // Singleton instance accessor
         public static SystemWizard Instance => _instance.Value;
 
+        // Have I started processes?
+        public SubsystemState CurrentState { get; private set; } = SubsystemState.Stopped;
+
         // Event for notifications (thread-safe subscription)
         private event EventHandler<SystemEventArgs>? SafeNotificationSent;
         public event EventHandler<SystemEventArgs>? NotificationSent
@@ -46,7 +49,9 @@ namespace OnlineGame.Core
         private readonly object _eventLock = new();
 
         // Private constructor to enforce singleton
-        private SystemWizard() { }
+        private SystemWizard() 
+        {
+        }
 
         public void RegisterSubsystem(ISubsystem subsystem)
         {
@@ -85,8 +90,11 @@ namespace OnlineGame.Core
                 {
                     try
                     {
-                        subsystem.Start();
-                        Scribe.Notification($"Subsystem {subsystem.Name} started.");
+                        if (subsystem.CurrentSystemState != SubsystemState.Running)
+                        {
+                            subsystem.Start();
+                            Scribe.Notification($"Subsystem {subsystem.Name} started.");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -106,8 +114,16 @@ namespace OnlineGame.Core
             {
                 try
                 {
-                    subsystem.Stop();
-                    Scribe.Notification($"Subsystem {subsystem.Name} stopped.");
+                    if (subsystem.CurrentSystemState == SubsystemState.Running)
+                    {
+                        UnloadSubsystemFromNamespace("OnlineGame.Core.Processes");
+                        subsystem.Stop();
+                        Scribe.Notification($"Subsystem {subsystem.Name} stopped.");
+                    }
+                    else
+                    {
+                        Scribe.Notification($"StopAll() in SystemWizard had an issue with trying to stop subsystem: {subsystem.Name}");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -135,8 +151,8 @@ namespace OnlineGame.Core
         {
             try
             {
+                UnloadSubsystemFromNamespace("");
                 StopAll();
-                ListProcesses();
                 
                 SocketWizard.Instance.Stop();
                 Sentinel.Instance.Stop();
@@ -178,6 +194,44 @@ namespace OnlineGame.Core
                 }
             }
         }
+
+        /// <summary>
+        /// Helps with automating shutdown of requires components/processes.
+        /// </summary>
+        /// <param name="nameSpace"></param>
+        private void UnloadSubsystemFromNamespace(string nameSpace)
+        {
+            try
+            {
+                // Find subsystems matching the specified namespace
+                var subsystemsToRemove = _subsystems
+                    .Where(kv => kv.Value.GetType().Namespace == nameSpace)
+                    .Select(kv => kv.Key)
+                    .ToList(); // ToList ensures we avoid modifying the dictionary during iteration
+
+                if (subsystemsToRemove.Count == 0)
+                {
+                    Scribe.Notification($"No subsystems found in namespace: {nameSpace}");
+                    return;
+                }
+
+                // Remove subsystems and clean up
+                foreach (var subsystemName in subsystemsToRemove)
+                {
+                    if (_subsystems.TryRemove(subsystemName, out var subsystem))
+                    {
+                        // Unsubscribe from events
+                        subsystem.StateChanged -= OnSubsystemStateChanged;
+                        Scribe.Notification($"Subsystem '{subsystemName}' removed from namespace '{nameSpace}'.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Scribe.Error(ex, $"Error unloading subsystems from namespace: {nameSpace}");
+            }
+        }
+
 
         private void OnSubsystemStateChanged(object? sender, SystemEventArgs e)
         {

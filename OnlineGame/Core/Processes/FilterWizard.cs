@@ -156,8 +156,11 @@ namespace OnlineGame.Core.Processes
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Banned words file not found at: {filePath}");
 
+            Scribe.Scry("Attempting to load bad words filter.");
+
             string[] fileContents = await File.ReadAllLinesAsync(filePath);
 
+            Scribe.Scry("Loaded bad words filter.");
 
             BannedWords.Clear();
             BannedWords.AddRange(fileContents);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -16,6 +17,55 @@ namespace OnlineGame.Network.Client
 
         public static Guid Id { get; } = Guid.NewGuid();
         public string Name { get; private set; } = $"Client_{Id}";
+        public string SocketAddressDns 
+        {
+            get
+            {
+                if (newSocket.RemoteEndPoint is IPEndPoint remoteEndPoint)
+                {
+                    try
+                    {
+                        IPHostEntry hostEntry = Dns.GetHostEntry(remoteEndPoint.Address);
+
+                        return hostEntry.HostName; // Returns the DNS host name
+                    }
+                    catch(Exception)
+                    {
+                        return "Unknown";
+                    }
+                }
+
+                return "Unknown";
+            }
+
+        }
+
+        public async Task<IPAddress?> SocketIPAddress()
+        {
+            if (newSocket.RemoteEndPoint is IPEndPoint remoteEndPoint)
+            {
+                return remoteEndPoint.Address; // Extract the IPAddress from the remote endpoint
+            }
+            else
+            {
+                Scribe.Notification($"User {Name} had no valid IP.");
+                await SendMessageAsync("Sorry you have no valid IP.");
+
+                Disconnect();
+                return null; // Return null if the RemoteEndPoint is not set
+            }
+        }
+
+
+        public string? SocketAddressString 
+        {
+            get
+            {
+                return SocketIPAddress()?.ToString();
+            }
+        }
+        
+
 
         public event EventHandler? Disconnected;
         public event EventHandler<SocketException>? SocketError;

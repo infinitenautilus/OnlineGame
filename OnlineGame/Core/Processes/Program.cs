@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using OnlineGame.Network;
 using OnlineGame.Utility;
 
@@ -17,27 +18,11 @@ namespace OnlineGame.Core.Processes
 
             Console.ReadLine();
 
-            SystemWizard.Instance.StartAll();
-
-            Thread.Sleep(1000);
-
-            SystemWizard.Instance.ListProcesses();
-
-            Console.WriteLine($"{Scribe.IsShuttingDown}");
-
-            string? response = string.Empty;
-
-            while (string.IsNullOrEmpty(response))
-            {
-                SystemWizard.Instance.ListProcesses();
-                response = Console.ReadLine();
-                Console.WriteLine($"{Scribe.IsShuttingDown}");
-            }
-
-            SystemWizard.Instance.StopAll();
-            SystemWizard.Instance.ListProcesses();
+            ConsoleManager cManager = new();
+            cManager.Initialize();
 
             Console.WriteLine("Goodbye.");
+
         }
     }
 }
