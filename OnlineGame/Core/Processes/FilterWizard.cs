@@ -42,7 +42,6 @@ namespace OnlineGame.Core.Processes
         // Private constructor for singleton
         private FilterWizard() 
         {
-            LoadBannedWordsFromCsv(Constellations.BANNEDNAMESFILE);
         }
 
         /// <summary>
@@ -50,8 +49,12 @@ namespace OnlineGame.Core.Processes
         /// </summary>
         public void Start()
         {
+            BannedWords.Clear();
+
+            LoadBannedWordsFromCsv(Constellations.BANNEDNAMESFILE);
+
             CurrentSystemState = SubsystemState.Running;
-            RaiseStateChanged("FilterWizard started successfully.");
+            RaiseStateChanged("FilterWizard started successfully");
         }
 
         /// <summary>
@@ -60,7 +63,7 @@ namespace OnlineGame.Core.Processes
         public void Stop()
         {
             CurrentSystemState = SubsystemState.Stopped;
-            RaiseStateChanged("FilterWizard stopped successfully.");
+            RaiseStateChanged("FilterWizard stopped successfully");
         }
 
         /// <summary>
@@ -156,11 +159,11 @@ namespace OnlineGame.Core.Processes
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Banned words file not found at: {filePath}");
 
-            Scribe.Scry("Attempting to load bad words filter.");
+            Scribe.Scry("Attempting to load bad words filter");
 
             string[] fileContents = await File.ReadAllLinesAsync(filePath);
 
-            Scribe.Scry("Loaded bad words filter.");
+            Scribe.Scry("Loaded bad words filter");
 
             BannedWords.Clear();
             BannedWords.AddRange(fileContents);

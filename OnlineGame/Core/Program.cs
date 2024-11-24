@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using OnlineGame.Network;
 using OnlineGame.Utility;
 
-namespace OnlineGame.Core.Processes
+namespace OnlineGame.Core
 {
     public class Program
     {

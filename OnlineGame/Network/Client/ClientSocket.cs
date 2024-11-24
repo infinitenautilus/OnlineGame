@@ -40,20 +40,18 @@ namespace OnlineGame.Network.Client
 
         }
 
-        public async Task<IPAddress?> SocketIPAddress()
+        public async Task<IPAddress> SocketIPAddress()
         {
             if (newSocket.RemoteEndPoint is IPEndPoint remoteEndPoint)
             {
                 return remoteEndPoint.Address; // Extract the IPAddress from the remote endpoint
             }
-            else
-            {
-                Scribe.Notification($"User {Name} had no valid IP.");
-                await SendMessageAsync("Sorry you have no valid IP.");
 
-                Disconnect();
-                return null; // Return null if the RemoteEndPoint is not set
-            }
+            Scribe.Notification($"User {Name} had no valid IP.");
+            await SendMessageAsync("Sorry you have no valid IP.");
+
+            Disconnect();
+            return IPAddress.Parse("0.0.0.0");
         }
 
 
@@ -61,7 +59,7 @@ namespace OnlineGame.Network.Client
         {
             get
             {
-                return SocketIPAddress()?.ToString();
+                return SocketIPAddress().ToString();
             }
         }
         
@@ -97,7 +95,7 @@ namespace OnlineGame.Network.Client
             }
             catch (Exception ex)
             {
-                HandleGeneralException(ex, nameof(SendMessageAsync));
+                Scribe.Error(ex);
             }
         }
 
@@ -135,7 +133,7 @@ namespace OnlineGame.Network.Client
             }
             catch (Exception ex)
             {
-                HandleGeneralException(ex, nameof(ReceiveMessageAsync));
+                Scribe.Error(ex);
                 return string.Empty;
             }
         }
@@ -185,11 +183,6 @@ namespace OnlineGame.Network.Client
             SocketError?.Invoke(this, ex);
 
             HandleDisconnection();
-        }
-
-        private static void HandleGeneralException(Exception ex, string context)
-        {
-            Scribe.Error(ex, $"Unexpected error in {context}.");
         }
 
         private void OnDisconnected()

@@ -22,16 +22,16 @@ namespace OnlineGame.Core
 
         private void DefaultMenuLoop(string? previousResponse)
         {
-            if(_mainMenuLoop)
+            if (_mainMenuLoop)
             {
                 if (string.IsNullOrWhiteSpace(previousResponse))
                 {
                     PrintCommands();
+                    WritePrompt();
                     DefaultMenuLoop(Console.ReadLine());
                     return;
                 }
 
-                WritePrompt();
 
                 char c = previousResponse.ToLower().Trim().ToCharArray()[0];
 
@@ -56,7 +56,7 @@ namespace OnlineGame.Core
                         SystemWizard.Instance.ListProcesses();
                         break;
                 }
-
+                WritePrompt();
                 DefaultMenuLoop(Console.ReadLine());
             }
         }
@@ -80,8 +80,7 @@ namespace OnlineGame.Core
         private void QuitProgram()
         {
             _mainMenuLoop = false;
-
-            SystemWizard.Instance.Shutdown();
+            AttemptStop();
         }
 
         private static void WritePrompt()
@@ -90,7 +89,7 @@ namespace OnlineGame.Core
 
             if(Sentinel.Instance.CurrentSystemState == SubsystemState.Running)
             {
-                prompt = $"{Constellations.TIMESTAMP} [SHPTQ][RUNNING]> ";
+                prompt = $"{Constellations.TIMESTAMP} [SHPTQ][LISTENING]> ";
             }
 
             Console.Write(prompt);

@@ -58,11 +58,11 @@ namespace OnlineGame.Core
             if (_subsystems.TryAdd(subsystem.Name, subsystem))
             {
                 subsystem.StateChanged += OnSubsystemStateChanged;
-                Scribe.Notification($"Subsystem {subsystem.Name} registered.");
+                Scribe.Notification($"Subsystem {subsystem.Name} registered");
             }
             else
             {
-                Scribe.Notification($"Subsystem {subsystem.Name} is already registered.");
+                Scribe.Notification($"Subsystem {subsystem.Name} is already registered");
             }
         }
 
@@ -73,7 +73,7 @@ namespace OnlineGame.Core
                 return subsystem;
             }
 
-            throw new KeyNotFoundException($"Subsystem {name} not found in GetSubsystem(string name).");
+            throw new KeyNotFoundException($"Subsystem {name} not found in GetSubsystem(string name)");
         }
 
         public void StartAll()
@@ -93,7 +93,7 @@ namespace OnlineGame.Core
                         if (subsystem.CurrentSystemState != SubsystemState.Running)
                         {
                             subsystem.Start();
-                            Scribe.Notification($"Subsystem {subsystem.Name} started.");
+                            Scribe.Notification($"Subsystem {subsystem.Name} started");
                         }
                     }
                     catch (Exception ex)
@@ -118,7 +118,7 @@ namespace OnlineGame.Core
                     {
                         UnloadSubsystemFromNamespace("OnlineGame.Core.Processes");
                         subsystem.Stop();
-                        Scribe.Notification($"Subsystem {subsystem.Name} stopped.");
+                        Scribe.Notification($"Subsystem {subsystem.Name} stopped");
                     }
                     else
                     {
@@ -144,7 +144,7 @@ namespace OnlineGame.Core
         {
             return _subsystems.TryGetValue(name, out ISubsystem? value)
                 ? value.CurrentSystemState
-                : throw new KeyNotFoundException($"Subsystem {name} not found.");
+                : throw new KeyNotFoundException($"Subsystem {name} not found");
         }
 
         public void Shutdown()
@@ -159,7 +159,7 @@ namespace OnlineGame.Core
 
                 Scribe.Scry("Shutting down subsystems...");
                 Scribe.Close();
-                Scribe.Scry("Application shutdown complete.");
+                Scribe.Scry("Application shutdown complete");
             }
             catch (Exception ex)
             {

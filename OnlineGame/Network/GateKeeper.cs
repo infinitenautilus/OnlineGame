@@ -78,7 +78,7 @@ namespace OnlineGame.Network
             try
             {
                 // Log incoming connection
-                Scribe.Scry($"Incoming client: {client.Name} from {client.SocketAddressString}");
+                Scribe.Scry($"Incoming client: {client.Name} from {client.SocketIPAddress}");
 
                 // Send welcome message
                 await client.SendMessageAsync($"Welcome to {Constellations.GAMENAME}");
