@@ -64,100 +64,66 @@ namespace OnlineGame.Network
         /// Initiates asynchronous processing of an incoming client connection.
         /// </summary>
         /// <param name="clientSocket">The connected client socket.</param>
-        public void HandleClient(Socket clientSocket)
+        public async void HandleClient(Socket clientSocket)
         {
             socketsJoined.Add(clientSocket);
 
-            _ = ProcessClientAsync(clientSocket);
+            try
+            {
+                await ProcessClientAsync(clientSocket);
+
+                Scribe.Scry("Reached end of game loop for clientSocket.");
+            }
+            catch(Exception ex)
+            {
+                Scribe.Error(ex);
+            }
         }
 
         private static async Task ProcessClientAsync(Socket clientSocket)
         {
             ClientSocket client = new(clientSocket);
+            await SocketWizard.Instance.Subscribe(client);
 
-            try
+            Scribe.Scry($"New Client: {client.Name} from {client.GetSocketAddressDNS()}");
+
+            await GreetNewUser(client);
+
+            string? userName = await client.ReceiveMessageAsync();
+
+            int retries = 0;
+
+            while ((string.IsNullOrEmpty(userName) || FilterWizard.Instance.IsValidUsername(userName)) && retries < 5 )
             {
-                // Log incoming connection
-                Scribe.Scry($"Incoming client: {client.Name} from {client.SocketIPAddress}");
+                await client.SendClearScreenAsync();
 
-                // Send welcome message
-                await client.SendMessageAsync($"Welcome to {Constellations.GAMENAME}");
+                await GreetNewUser(client);
 
-                // Ask for character name
-                await client.SendMessageAsync("Please enter your character name:");
-                string? characterName = await client.ReceiveMessageAsync();
-
-                // Validate character name
-                while (string.IsNullOrWhiteSpace(characterName) || FilterWizard.IsValidUsername(characterName))
-                {
-                    await client.SendMessageAsync("Invalid character name. Please try again:");
-                    characterName = await client.ReceiveMessageAsync();
-                }
-
-
-                // Check if the player exists
-                string playerFilePath = Path.Combine(Constellations.PLAYERSTORAGE, $"{characterName}.txt");
-                bool isNewPlayer = !File.Exists(playerFilePath);
-
-                if (isNewPlayer)
-                {
-                    // New player creation
-                    await client.SendMessageAsync("Character not found. Would you like to create a new one? (yes/no)");
-                    string? response = await client.ReceiveMessageAsync();
-
-                    if (response?.Trim().ToLower() != "yes")
-                    {
-                        await client.SendMessageAsync("Connection closed. Goodbye!");
-                        return; // Exit the method
-                    }
-
-                    // Prompt the user to set a password
-                    await client.SendMessageAsync("Please set a password for your new character:");
-                    string? password = await client.ReceiveMessageAsync();
-
-                    while (string.IsNullOrWhiteSpace(password))
-                    {
-                        await client.SendMessageAsync("Invalid password. Please try again:");
-                        password = await client.ReceiveMessageAsync();
-                    }
-
-                    // Encrypt and save the new character's password
-                    string encryptedPassword = EncryptPassword(password);
-                    File.WriteAllText(playerFilePath, encryptedPassword);
-                    await client.SendMessageAsync($"Character '{characterName}' created successfully!");
-                }
-                else
-                {
-                    // Existing player login
-                    await client.SendMessageAsync("Please enter your password:");
-                    string? password = await client.ReceiveMessageAsync();
-
-                    while (!ValidatePassword(password, File.ReadAllText(playerFilePath)))
-                    {
-                        await client.SendMessageAsync("Invalid password. Please try again:");
-                        password = await client.ReceiveMessageAsync();
-                    }
-
-                    await client.SendMessageAsync($"Welcome back, {characterName}!");
-                }
-
-                // (Commented for now) Pass control to Shroud for world generation
-                // Shroud.LoadCharacter(characterName);
-
-                // Temporary placeholder for main communication loop
-                await client.SendMessageAsync("You are now in the game world. (Placeholder)");
+                userName = await client.ReceiveMessageAsync();
+                retries++;
             }
-            catch (Exception ex)
+
+            await client.SendMessageLineAsync($"Welcome {userName}");
+
+            string curedUserName = userName.ToLower().Trim();
+
+            bool isNewPlayer = !File.Exists($"{Constellations.PLAYERSTORAGE}{curedUserName}.txt");
+
+            if(isNewPlayer)
             {
-                // Handle any exceptions during client communication
-                Scribe.Error(ex, "Error processing client.");
-            }
-            finally
-            {
-                // Ensure the client is properly disconnected
-                client.Disconnect();
-                Scribe.Scry($"Client {client.Name} disconnected.");
-            }
+                Scribe.Scry("NewPlayer detected.");
+                await client.SendMessageLineAsync("Welcome new player!");
+
+            }       
+        
+            SocketWizard.Instance.Unsubscribe(client);
+        }
+
+        private static async Task GreetNewUser(ClientSocket client)
+        {
+            await client.SendMessageLineAsync($"Welcome to {Constellations.GAMENAME}");
+            await client.SendMessageLineAsync($"You are connecting from {client.GetSocketAddressDNS()}");
+            await client.SendMessageAsync($"By what name are you known? ");
         }
 
         /// <summary>
@@ -180,7 +146,9 @@ namespace OnlineGame.Network
         /// <returns>True if the password is valid; otherwise, false.</returns>
         private static bool ValidatePassword(string? inputPassword, string storedPassword)
         {
-            if (string.IsNullOrWhiteSpace(inputPassword)) return false;
+            if (string.IsNullOrWhiteSpace(inputPassword)) 
+                return false;
+            
             return EncryptPassword(inputPassword) == storedPassword;
         }
 

@@ -17,25 +17,27 @@ namespace OnlineGame.Core
         public void Initialize()
         {
             _mainMenuLoop = true;
-            DefaultMenuLoop(null);
+            DefaultMenuLoop();
         }
 
-        private void DefaultMenuLoop(string? previousResponse)
+        private void DefaultMenuLoop()
         {
-            if (_mainMenuLoop)
+            while (_mainMenuLoop)
             {
-                if (string.IsNullOrWhiteSpace(previousResponse))
+                PrintCommands();
+                WritePrompt();
+
+                string? userInput = Console.ReadLine()?.Trim().ToLower();
+
+                if (string.IsNullOrEmpty(userInput))
                 {
-                    PrintCommands();
-                    WritePrompt();
-                    DefaultMenuLoop(Console.ReadLine());
-                    return;
+                    Console.WriteLine("Invalid input. Please try again.");
+                    continue;
                 }
 
+                char command = userInput[0];
 
-                char c = previousResponse.ToLower().Trim().ToCharArray()[0];
-
-                switch(c)
+                switch (command)
                 {
                     case 's':
                         AttemptStart();
@@ -51,15 +53,14 @@ namespace OnlineGame.Core
                         break;
                     case 'q':
                         QuitProgram();
-                        break;
+                        return; // Exit the loop when quitting
                     default:
-                        SystemWizard.Instance.ListProcesses();
+                        Console.WriteLine("Unknown command. Please try again.");
                         break;
                 }
-                WritePrompt();
-                DefaultMenuLoop(Console.ReadLine());
             }
         }
+
 
         private static void AttemptStart()
         {

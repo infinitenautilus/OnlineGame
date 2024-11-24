@@ -11,11 +11,17 @@ using OnlineGame.Utility.Types;
 
 namespace OnlineGame.Core.Processes
 {
-    public sealed class SocketWizard : ISubsystem
+    public sealed class SocketWizard : ISubsystem, IUpdateable
     {
         // Singleton instance
         private static readonly Lazy<SocketWizard> _instance = new(() => new SocketWizard());
         public static SocketWizard Instance => _instance.Value;
+
+        // Manage the Socket pulse to ping and check for disconnected users.
+        // This uses an independent heartbeat.
+
+        public Heartbeat KeepAliveTimer { get; private set; } = new(500);
+
 
         // Current connected clients
         private readonly ThreadSafeList<ClientSocket> _currentClients = new();
@@ -30,19 +36,32 @@ namespace OnlineGame.Core.Processes
         // Private constructor to enforce singleton
         private SocketWizard()
         {
-
         }
 
         public void Start()
         {
+            KeepAliveTimer.Register(this);
+            KeepAliveTimer.Start();
+
             CurrentSystemState = SubsystemState.Running;
             NotifyStateChanged("Socket Wizard started successfully.");
         }
 
         public void Stop()
         {
+            KeepAliveTimer?.Stop();
             CurrentSystemState = SubsystemState.Stopped;
             NotifyStateChanged("Socket Wizard stopped successfully.");
+        }
+
+        public void Update()
+        {
+            List<ClientSocket> temp = new([.. CurrentClients]);
+            
+            foreach (ClientSocket cs in temp)
+            {
+                cs.Update();
+            }
         }
 
         public async Task Subscribe(ClientSocket client)
@@ -56,6 +75,7 @@ namespace OnlineGame.Core.Processes
 
                     await BroadcastMessage($"New Client Subscribed: {client.Name}");
                     NotifyStateChanged($"Added new Client: {client.Name}");
+                    KeepAliveTimer.Register(client);
                 }
                 else
                 {
@@ -68,13 +88,15 @@ namespace OnlineGame.Core.Processes
             }
         }
 
-        public void Unsubscribe(ClientSocket client)
+        public async void Unsubscribe(ClientSocket client)
         {
             try
             {
                 if (_currentClients.Remove(client))
                 {
                     Scribe.Notification($"Client {client.Name} unsubscribed.");
+                    await BroadcastMessage($"Client {client.Name} unsubscribed.");
+
                     client.Disconnect();
                 }
             }
@@ -105,7 +127,7 @@ namespace OnlineGame.Core.Processes
             {
                 foreach (ClientSocket client in _currentClients.ToList())
                 {
-                    await client.SendMessageAsync(message);
+                    await client.SendANSIMessageAsync(message);
                 }
 
             }

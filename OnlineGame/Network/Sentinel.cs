@@ -145,7 +145,7 @@ namespace OnlineGame.Network
                     {
                         Socket clientSocket = acceptTask.Result;
 
-                        Scribe.Scry($"New client accepted from {clientSocket.AddressFamily}");
+                        Scribe.Scry($"New client accepted.");
 
                         // Pass client to GateKeeper for further handling
                         GateKeeper.Instance.HandleClient(clientSocket);

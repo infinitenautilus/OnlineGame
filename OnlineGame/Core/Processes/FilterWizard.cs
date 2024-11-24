@@ -93,10 +93,14 @@ namespace OnlineGame.Core.Processes
         /// </summary>
         /// <param name="username">The username to validate.</param>
         /// <returns>True if valid, otherwise false.</returns>
-        public static bool IsValidUsername(string username)
+        public bool IsValidUsername(string username)
         {
             if (string.IsNullOrWhiteSpace(username) || username.Length > 14)
                 return false;
+
+            if (IsNameBanned(username))
+                return false;
+
 
             // Check for non-alphabetical characters or whitespace
             if (!username.All(char.IsLetter))
