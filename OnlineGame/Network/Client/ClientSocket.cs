@@ -62,7 +62,6 @@ namespace OnlineGame.Network.Client
 
         public async Task<IPAddress> GetIPAddress()
         {
-   
             try
             {
                 // Ensure the RemoteEndPoint is not null and is of type IPEndPoint.
@@ -146,8 +145,7 @@ namespace OnlineGame.Network.Client
                 throw new ArgumentException("Message cannot be null or whitespace.", nameof(message));
 
             byte[] buffer = Encoding.UTF8.GetBytes(message);
-
-
+            
             try
             {
                 if(!IsSocketConnected())
@@ -172,49 +170,70 @@ namespace OnlineGame.Network.Client
             }
         }
 
-        public async Task<string> ReceiveMessageAsync(CancellationToken cancellationToken = default)
-        {
-            return await ReceiveRawMessageAsync(cancellationToken);
-        }
-
-        private async Task<string> ReceiveRawMessageAsync(CancellationToken cancellationToken = default)
+        public async Task<string> ReceiveRawMessageAsync(CancellationToken cancellationToken = default)
         {
             byte[] buffer = new byte[1024];
 
             try
             {
+                // Check if the socket is connected
                 if (!IsSocketConnected())
                 {
-                    Disconnect();
+                    HandleDisconnection();
                     return string.Empty;
                 }
 
+                // Receive data from the socket
                 int bytesReceived = await _socket.ReceiveAsync(buffer, SocketFlags.None, cancellationToken);
 
+                // Handle disconnection if no bytes were received
                 if (bytesReceived == 0)
                 {
                     HandleDisconnection();
                     return string.Empty;
                 }
 
-                return Encoding.UTF8.GetString(buffer, 0, bytesReceived);
+                // Decode the message
+                string receivedMessage = Encoding.ASCII.GetString(buffer, 0, bytesReceived);
+
+                // Clean up Telnet-specific artifacts and trim the message
+                string telnetCleanedMessage = UniversalTranslator.CleanTelnetInput(receivedMessage);
+
+                // Ignore empty or whitespace-only messages
+                if (string.IsNullOrWhiteSpace(telnetCleanedMessage))
+                {
+                    return string.Empty;
+                }
+
+                // Log the cleaned message
+                Scribe.Scry($"Received Raw Message: {receivedMessage}");
+                Scribe.Scry($"telnetCleanedMessage: {telnetCleanedMessage}");
+                
+                await SendMessageLineAsync($"Received: {receivedMessage}", CancellationToken.None);
+                
+                return telnetCleanedMessage;
             }
             catch (SocketException)
             {
+                // Handle socket exceptions (e.g., reconnect or cleanup)
                 await MonitorSocketAsync();
                 return string.Empty;
             }
             catch (OperationCanceledException)
             {
+                // Log cancellation of the receive operation
                 Scribe.Scry("ReceiveMessageAsync operation was canceled.");
                 return string.Empty;
             }
             catch (Exception ex)
             {
+                // Log any other exceptions
                 Scribe.Error(ex);
                 return string.Empty;
             }
         }
+
+
 
         public async Task<string> ReceiveANSIMessageAsync(CancellationToken cancellationToken= default)
         {

@@ -176,6 +176,43 @@ namespace OnlineGame.Core.Processes
             await File.WriteAllTextAsync(playerFilePath, jsonData);
         }
 
+        public static async Task<bool> LoadPlayerFromFile(string userName, string password)
+        {
+            try
+            {
+                // Build the file path
+                string playerFilePath = $"{Constellations.PLAYERSTORAGE}{userName.ToLower().Trim()}.json";
+
+                // Check if the file exists
+                if (!File.Exists(playerFilePath))
+                {
+                    Scribe.Scry($"Player file not found for {userName}.");
+                    return false;
+                }
+
+                // Read the JSON file
+                string jsonData = await File.ReadAllTextAsync(playerFilePath, Encoding.UTF8);
+
+                // Deserialize the JSON to extract the stored password
+                var playerData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(jsonData);
+
+                if (playerData == null || !playerData.TryGetValue("Password", out string? storedPassword))
+                {
+                    Scribe.Scry($"Malformed player file for {userName}.");
+                    return false;
+                }
+
+                // Validate the provided password against the stored password
+                return ValidatePassword(password, storedPassword);
+            }
+            catch (Exception ex)
+            {
+                Scribe.Error(ex, $"Error loading player file for {userName}: {ex.Message}");
+                return false;
+            }
+        }
+
+
         /// <summary>
         /// Encrypts a password for storage (simple hash for demonstration purposes).
         /// </summary>

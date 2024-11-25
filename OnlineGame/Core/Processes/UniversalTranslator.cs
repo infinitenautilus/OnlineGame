@@ -17,15 +17,58 @@ namespace OnlineGame.Core.Processes
 
         private readonly Dictionary<string, string> _colorMap = new()
         {
-            { "%^BLUE%^", "\x1B[34m" },  // Blue
-            { "%^GREEN%^", "\x1B[32m" }, // Green
-            { "%^RED%^", "\x1B[31m" },   // Red
-            { "%^WHITE%^", "\x1B[37m" }, // White
-            { "%^BOLD%^BLUE%^", "\x1B[1;34m" }, // Bold Blue
-            { "%^BOLD%^GREEN%^", "\x1B[1;32m" }, // Bold Green
-            { "%^BOLD%^RED%^", "\x1B[1;31m" },   // Bold Red
-            { "%^BOLD%^WHITE%^", "\x1B[1;37m" }, // Bold White
-            { "%^RESET%^", "\x1B[0m" }          // Reset
+            // Standard Colors
+            { "%^BLACK%^", "\x1B[30m" },    // Black
+            { "%^RED%^", "\x1B[31m" },      // Red
+            { "%^GREEN%^", "\x1B[32m" },    // Green
+            { "%^YELLOW%^", "\x1B[33m" },   // Yellow
+            { "%^BLUE%^", "\x1B[34m" },     // Blue
+            { "%^MAGENTA%^", "\x1B[35m" },  // Magenta
+            { "%^CYAN%^", "\x1B[36m" },     // Cyan
+            { "%^WHITE%^", "\x1B[37m" },    // White
+
+            // Bold Colors
+            { "%^BOLD%^BLACK%^", "\x1B[1;30m" },    // Bold Black
+            { "%^BOLD%^RED%^", "\x1B[1;31m" },      // Bold Red
+            { "%^BOLD%^GREEN%^", "\x1B[1;32m" },    // Bold Green
+            { "%^BOLD%^YELLOW%^", "\x1B[1;33m" },   // Bold Yellow
+            { "%^BOLD%^BLUE%^", "\x1B[1;34m" },     // Bold Blue
+            { "%^BOLD%^MAGENTA%^", "\x1B[1;35m" },  // Bold Magenta
+            { "%^BOLD%^CYAN%^", "\x1B[1;36m" },     // Bold Cyan
+            { "%^BOLD%^WHITE%^", "\x1B[1;37m" },    // Bold White
+
+            // Background Colors
+            { "%^BG_BLACK%^", "\x1B[40m" },   // Black Background
+            { "%^BG_RED%^", "\x1B[41m" },     // Red Background
+            { "%^BG_GREEN%^", "\x1B[42m" },   // Green Background
+            { "%^BG_YELLOW%^", "\x1B[43m" },  // Yellow Background
+            { "%^BG_BLUE%^", "\x1B[44m" },    // Blue Background
+            { "%^BG_MAGENTA%^", "\x1B[45m" }, // Magenta Background
+            { "%^BG_CYAN%^", "\x1B[46m" },    // Cyan Background
+            { "%^BG_WHITE%^", "\x1B[47m" },   // White Background
+
+            // Bright Colors
+            { "%^BRIGHT%^BLACK%^", "\x1B[90m" },    // Bright Black (Gray)
+            { "%^BRIGHT%^RED%^", "\x1B[91m" },      // Bright Red
+            { "%^BRIGHT%^GREEN%^", "\x1B[92m" },    // Bright Green
+            { "%^BRIGHT%^YELLOW%^", "\x1B[93m" },   // Bright Yellow
+            { "%^BRIGHT%^BLUE%^", "\x1B[94m" },     // Bright Blue
+            { "%^BRIGHT%^MAGENTA%^", "\x1B[95m" },  // Bright Magenta
+            { "%^BRIGHT%^CYAN%^", "\x1B[96m" },     // Bright Cyan
+            { "%^BRIGHT%^WHITE%^", "\x1B[97m" },    // Bright White
+
+            // Bright Background Colors
+            { "%^BG_BRIGHT%^BLACK%^", "\x1B[100m" },   // Bright Black Background
+            { "%^BG_BRIGHT%^RED%^", "\x1B[101m" },     // Bright Red Background
+            { "%^BG_BRIGHT%^GREEN%^", "\x1B[102m" },   // Bright Green Background
+            { "%^BG_BRIGHT%^YELLOW%^", "\x1B[103m" },  // Bright Yellow Background
+            { "%^BG_BRIGHT%^BLUE%^", "\x1B[104m" },    // Bright Blue Background
+            { "%^BG_BRIGHT%^MAGENTA%^", "\x1B[105m" }, // Bright Magenta Background
+            { "%^BG_BRIGHT%^CYAN%^", "\x1B[106m" },    // Bright Cyan Background
+            { "%^BG_BRIGHT%^WHITE%^", "\x1B[107m" },   // Bright White Background
+
+            // Reset
+            { "%^RESET%^", "\x1B[0m" } // Reset
         };
 
         public string Name => "UniversalTranslator";
@@ -68,6 +111,11 @@ namespace OnlineGame.Core.Processes
             }
 
             return message;
+        }
+
+        public static string CleanTelnetInput(string input)
+        {
+            return new string(input.Where(c => !char.IsControl(c) || c == '\n' || c == '\r').ToArray()).Trim();
         }
     }
 }

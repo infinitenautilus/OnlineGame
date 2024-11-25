@@ -10,7 +10,6 @@
   <ItemGroup>
     <Folder Include="Config\" />
     <Folder Include="Game\Core\Processes\" />
-    <Folder Include="Game\Interfaces\" />
     <Folder Include="Game\Utility\" />
   </ItemGroup>
 
