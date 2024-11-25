@@ -58,7 +58,6 @@ namespace OnlineGame.Core
             if (_subsystems.TryAdd(subsystem.Name, subsystem))
             {
                 subsystem.StateChanged += OnSubsystemStateChanged;
-                Scribe.Notification($"Subsystem {subsystem.Name} registered");
             }
             else
             {
@@ -84,6 +83,7 @@ namespace OnlineGame.Core
                 {
                     LoadSubsystemsFromNamespace("OnlineGame.Core.Processes");
                     _subsystems.TryAdd(Sentinel.Instance.Name, Sentinel.Instance);
+                    _subsystems.TryAdd(GateKeeper.Instance.Name, GateKeeper.Instance);
                 }
 
                 foreach (ISubsystem subsystem in _subsystems.Values)

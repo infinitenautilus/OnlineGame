@@ -198,24 +198,19 @@ namespace OnlineGame.Core.Processes
         /// <param name="userName">The username of the player.</param>
         /// <param name="password">The password of the player.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        public static async Task CreateNewPlayerFile(string userName, string password)
+        public static async Task CreateNewPlayerFile(string userName)
         {
             // Encrypt the password using the existing EncryptPassword method
-            string encryptedPassword = EncryptPassword(password);
+            //string encryptedPassword = EncryptPassword(password);
 
             // Create a PlayerFile object
-            PlayerFile playerFile = new()
-            {
-                UserName = userName,
-                PasswordHash = encryptedPassword,
-                CreatedDate = DateTime.UtcNow
-            };
+            PlayerObject playerFile = new();
 
             // Save the PlayerFile using its SavePlayerAsync method
-            await PlayerFile.SavePlayerAsync(playerFile);
+            await PlayerObject.SavePlayerAsync(playerFile);
 
             // Optional: Log the operation
-            Scribe.Scry($"New player file created for {userName} at {Constellations.PLAYERSTORAGE}{userName.ToLower()}.json");
+            Scribe.Scry($"New player file created for {userName} at {playerFile}");
         }
 
 
@@ -224,7 +219,7 @@ namespace OnlineGame.Core.Processes
         /// </summary>
         /// <param name="userName">The username of the player whose file is to be loaded.</param>
         /// <returns>A task that represents the asynchronous operation, containing the loaded PlayerFile object, or null if the file is not found or invalid.</returns>
-        public static async Task<PlayerFile?> LoadPlayerFile(string userName)
+        public static async Task<PlayerObject?> LoadPlayerFile(string userName)
         {
             try
             {
@@ -232,7 +227,7 @@ namespace OnlineGame.Core.Processes
                 string filePath = $@"{Constellations.PLAYERSTORAGE}{userName.ToLower()}.json";
 
                 // Check if the file exists
-                if (!File.Exists(filePath))
+                if (!FileExists(filePath))
                 {
                     Scribe.Scry($"Player file not found for {userName}.");
                     return null;
@@ -242,7 +237,7 @@ namespace OnlineGame.Core.Processes
                 string jsonData = await File.ReadAllTextAsync(filePath);
 
                 // Deserialize the JSON content into a PlayerFile object
-                PlayerFile? playerFile = System.Text.Json.JsonSerializer.Deserialize<PlayerFile>(jsonData);
+                PlayerObject? playerFile = System.Text.Json.JsonSerializer.Deserialize<PlayerObject>(jsonData);
 
                 if (playerFile == null)
                 {
@@ -264,7 +259,7 @@ namespace OnlineGame.Core.Processes
         /// </summary>
         /// <param name="playerFile">The PlayerFile object to save.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        public static async Task SavePlayerFile(PlayerFile playerFile)
+        public static async Task SavePlayerFile(PlayerObject playerFile)
         {
             try
             {
@@ -276,7 +271,7 @@ namespace OnlineGame.Core.Processes
                     throw new ArgumentException("PlayerFile must have a valid username.", nameof(playerFile));
 
                 // Save the PlayerFile using its SavePlayerAsync method
-                await PlayerFile.SavePlayerAsync(playerFile);
+                await PlayerObject.SavePlayerAsync(playerFile);
 
                 // Log success
                 Scribe.Scry($"Player file for {playerFile.UserName} has been saved successfully.");

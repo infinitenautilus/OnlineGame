@@ -116,7 +116,7 @@ namespace OnlineGame.Network
                     }
 
                     // Create a new playerFile file
-                    PlayerFile newPlayerFile = new()
+                    PlayerObject newPlayerFile = new()
                     {
                         UserName = userName,
                         PasswordHash = CommunicationsOperator.HashPassword(newPassword), // Hash the password
@@ -141,13 +141,12 @@ namespace OnlineGame.Network
                     }
 
                     // Load the playerFile's file and verify the password
-                    PlayerFile? playerFile = await CommunicationsOperator.LoadPlayerFile(userName);
+                    PlayerObject? playerFile = await CommunicationsOperator.LoadPlayerFile(userName);
 
                     if (playerFile == null || !PasswordHasher.VerifyPassword(password, playerFile.PasswordHash))
                     {
                         await client.SendMessageLineAsync("Invalid username or password. Disconnecting...");
-                        client.Disconnect();
-                        return;
+
                     }
 
                     await client.SendMessageLineAsync($"Welcome back, {userName}!");
@@ -160,7 +159,7 @@ namespace OnlineGame.Network
             }
             finally
             {
-                SocketWizard.Instance.Unsubscribe(client);
+                //SocketWizard.Instance.Unsubscribe(client);
             }
         }
 

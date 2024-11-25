@@ -4,12 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineGame.Core.Interfaces
+namespace OnlineGame.Game.GameObjects.ComponentInterfaces
 {
-    public interface IUpdateable
+    public interface IComponentInterface
     {
+        string Name { get; set; }
         void Initialize();
-
         void Update();
+
     }
 }

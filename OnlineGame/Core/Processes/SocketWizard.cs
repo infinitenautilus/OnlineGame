@@ -54,6 +54,11 @@ namespace OnlineGame.Core.Processes
             NotifyStateChanged("Socket Wizard stopped successfully.");
         }
 
+        public void Initialize()
+        {
+
+        }
+
         public void Update()
         {
             List<ClientSocket> temp = new([.. CurrentClients]);
