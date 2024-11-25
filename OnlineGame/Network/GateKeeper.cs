@@ -106,53 +106,79 @@ namespace OnlineGame.Network
             await client.SendMessageLineAsync($"Welcome {userName}");
 
             string curedUserName = userName.ToLower().Trim();
+            
+            await client.SendMessageLineAsync($"Cured Username: {curedUserName}");
 
-            bool isNewPlayer = !File.Exists($"{Constellations.PLAYERSTORAGE}{curedUserName}.txt");
+            bool isNewPlayer = !CommunicationsOperator.FileExists($"{Constellations.PLAYERSTORAGE}{curedUserName}.txt");
 
-            if(isNewPlayer)
+            if (isNewPlayer)
             {
                 Scribe.Scry("NewPlayer detected.");
-                await client.SendMessageLineAsync("Welcome new player!");
 
-            }       
-        
-            SocketWizard.Instance.Unsubscribe(client);
+                string password = string.Empty;
+
+                retries = 0;
+
+                while (string.IsNullOrWhiteSpace(password) && retries < 5)
+                {
+                    if (retries != 0)
+                    {
+                        await client.SendMessageLineAsync("Invalid password. Please try again.");
+                    }
+
+                    await AskNewPlayerPassword(client, curedUserName);
+
+                    password = await client.ReceiveMessageAsync();
+
+                    retries++;
+                }
+
+                if (!string.IsNullOrWhiteSpace(password))
+                {
+                    try
+                    {
+                        await CommunicationsOperator.CreateNewPlayerFile(curedUserName, password);
+                        await client.SendMessageLineAsync("Your account has been created successfully.");
+                        Scribe.Scry($"New player file created for {userName}.");
+                    }
+                    catch (Exception ex)
+                    {
+                        await client.SendMessageLineAsync("An error occurred while creating your account. Please try again later.");
+                        Scribe.Error(ex, $"Failed to create player file for {userName}: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    await client.SendMessageLineAsync("Failed to create an account. Too many invalid attempts.");
+                    Scribe.Scry($"New player registration failed for {userName}.");
+                    return;
+                }
+            }
+            else
+            {
+               await AskForPassword(client, curedUserName);
+            }
+            //SocketWizard.Instance.Unsubscribe(client);
         }
 
         private static async Task GreetNewUser(ClientSocket client)
         {
             await client.SendMessageLineAsync($"Welcome to {Constellations.GAMENAME}");
-            await client.SendMessageLineAsync($"You are connecting from {client.GetSocketAddressDNS()}");
+            await client.SendANSIMessageAsync($"You are connecting from %^RED%^{client.GetSocketAddressDNS()}%^RESET%^");
             await client.SendMessageAsync($"By what name are you known? ");
         }
-
-        /// <summary>
-        /// Encrypts a password for storage (simple hash for demonstration purposes).
-        /// </summary>
-        /// <param name="password">The plaintext password to encrypt.</param>
-        /// <returns>The encrypted password.</returns>
-        private static string EncryptPassword(string password)
+        
+        private static async Task AskForPassword(ClientSocket client, string userName)
         {
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            byte[] hashBytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(hashBytes);
+            await client.SendANSIMessageAsync($"Please provide the password for %^RED%^{userName}%^RESET%^: ");
         }
 
-        /// <summary>
-        /// Validates a plaintext password against an encrypted one.
-        /// </summary>
-        /// <param name="inputPassword">The plaintext password input.</param>
-        /// <param name="storedPassword">The encrypted password stored on file.</param>
-        /// <returns>True if the password is valid; otherwise, false.</returns>
-        private static bool ValidatePassword(string? inputPassword, string storedPassword)
+        private static async Task AskNewPlayerPassword(ClientSocket client, string userName)
         {
-            if (string.IsNullOrWhiteSpace(inputPassword)) 
-                return false;
-            
-            return EncryptPassword(inputPassword) == storedPassword;
+            await client.SendMessageLineAsync($"Please provide a password for {userName}");
+            await client.SendMessageLineAsync($"Passwords can be up to 20 characters long, and include any terminal character.");
+            await client.SendMessageAsync($"Enter Password: ");
         }
-
-
 
         /// <summary>
         /// Raises the StateChanged event and logs the state change.

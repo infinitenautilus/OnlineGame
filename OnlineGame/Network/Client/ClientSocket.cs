@@ -131,6 +131,15 @@ namespace OnlineGame.Network.Client
             await WriteMessageAsync(filtered, cancellationToken);
         }
 
+        public async Task SendANSIMessageLineAsync(string message, CancellationToken cancellationToken = default)
+        {
+            string filtered;
+
+            filtered = UniversalTranslator.Instance.TranslateMessage(message + Environment.NewLine);
+
+            await WriteMessageAsync(filtered, cancellationToken);
+        }
+
         private async Task WriteMessageAsync(string message, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(message))
