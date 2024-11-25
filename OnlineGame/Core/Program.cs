@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using OnlineGame.Network;
 using OnlineGame.Utility;
 
@@ -13,16 +15,11 @@ namespace OnlineGame.Core
         }
 
         public static void Main()
-        {
-            Console.WriteLine("Press enter to start.");
-
-            Console.ReadLine();
-
+        { 
             ConsoleManager cManager = new();
             cManager.Initialize();
 
             Console.WriteLine("Goodbye.");
-
         }
     }
 }

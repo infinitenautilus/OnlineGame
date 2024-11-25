@@ -285,7 +285,7 @@ namespace OnlineGame.Network.Client
 
             if(!IsSocketConnected())
             {
-                Console.WriteLine("Client disconnected.");
+                HandleDisconnection();
             }
         }
 

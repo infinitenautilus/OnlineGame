@@ -101,9 +101,7 @@ namespace OnlineGame.Network
 
                 userName = userName.ToLower();
 
-                // Check if the playerFile file exists to determine if this is a new user
-                string filePath = $@"{Constellations.PLAYERSTORAGE}{userName}.json";
-                bool newUser = !CommunicationsOperator.FileExists(filePath);
+                bool newUser = !await PlayerObject.UserNameExistsAsync(userName);
 
                 if (newUser)
                 {
@@ -116,16 +114,16 @@ namespace OnlineGame.Network
                         return;
                     }
 
-                    // Create a new playerFile file
-                    PlayerObject newPlayerFile = new()
+                    // Create a new playerObj file
+                    PlayerObject newPlayerObj = new()
                     {
                         UserName = userName,
                         PasswordHash = CommunicationsOperator.HashPassword(newPassword), // Hash the password
                         CreatedDate = DateTime.UtcNow
                     };
 
-                    // Save the new playerFile file using the CommunicationsOperator
-                    await CommunicationsOperator.SavePlayerFile(newPlayerFile);
+
+                    await PlayerObject.SavePlayerAsync(newPlayerObj);
 
                     await client.SendMessageLineAsync("Your account has been created successfully. Welcome!");
                     Scribe.Scry($"New player file created for {userName}.");
@@ -140,19 +138,10 @@ namespace OnlineGame.Network
                         client.Disconnect();
                         return;
                     }
-
-                    // Load the playerFile's file and verify the password
-                    PlayerObject? playerFile = await CommunicationsOperator.LoadPlayerFile(userName);
-
-                    if (playerFile == null || !PasswordHasher.VerifyPassword(password, playerFile.PasswordHash))
-                    {
-                        await client.SendMessageLineAsync("Invalid username or password. Disconnecting...");
-
-                    }
-
-                    await client.SendMessageLineAsync($"Welcome back, {userName}!");
-                    Scribe.Scry($"{userName} has successfully logged in.");
                 }
+                
+                await client.SendMessageLineAsync($"Welcome back, {userName}!");
+                Scribe.Scry($"{userName} has successfully logged in.");
             }
             catch (Exception ex)
             {

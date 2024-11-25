@@ -29,7 +29,7 @@ namespace OnlineGame.Config
         {
             get
             {
-                return @".\Temp\Mud\";
+                return @"\Temp\Mud\";
             }
         }
 
@@ -69,8 +69,7 @@ namespace OnlineGame.Config
         {
             get
             {
-                //   return "10.0.0.85";
-                return "127.0.0.1";
+                return "10.0.0.85";
             }
         }
 
@@ -79,6 +78,22 @@ namespace OnlineGame.Config
             get
             {
                 return IPAddress.Parse(HOSTADDRESSSTRING);
+            }
+        }
+
+        public static string DATABASECONNECTIONSTRING
+        {
+            get
+            {
+                return @$"mongodb://mongoaccess:test@174.51.144.124:9997";
+            }
+        }
+
+        public static string DATABASENAMESTRING
+        {
+            get
+            {
+                return "OnlineGame";
             }
         }
     }
