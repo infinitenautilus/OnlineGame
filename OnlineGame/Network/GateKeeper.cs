@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Processes;
 using OnlineGame.Core.Types;
+using OnlineGame.Game.GameObjects.Player;
 using OnlineGame.Network.Client;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
@@ -11,8 +12,7 @@ using OnlineGame.Utility.Types;
 namespace OnlineGame.Network
 {
     /// <summary>
-    /// The GateKeeper class manages client connections, processes incoming clients,
-    /// and maintains the state of the subsystem.
+    /// The GateKeeper class manages the border of incoming new connections and protects the realm
     /// </summary>
     public sealed class GateKeeper : ISubsystem
     {
@@ -81,11 +81,6 @@ namespace OnlineGame.Network
                 Scribe.Error(ex);
             }
         }
-
-        /// <summary>
-        /// Handles the logic for processing a client, including greeting, authentication, and setup.
-        /// </summary>
-        /// <param name="clientSocket">The client socket to process.</param>
         private static async Task ProcessClientAsync(Socket clientSocket)
         {
             ClientSocket client = new(clientSocket);
@@ -95,39 +90,68 @@ namespace OnlineGame.Network
             {
                 Scribe.Scry($"New Client: {client.Name} from {client.GetSocketAddressDNS()}");
 
-                await GreetNewUser(client);
-
-                string? userName = UniversalTranslator.CleanTelnetInput(await client.ReceiveRawMessageAsync());
-                int retries = 0;
-
-                // Retry loop for valid username input
-                while ((string.IsNullOrWhiteSpace(userName) || !FilterWizard.Instance.IsValidUsername(userName)) && retries < 5)
+                // Greet and get username
+                string? userName = await GreetAndGetUsername(client);
+                if (string.IsNullOrEmpty(userName))
                 {
-                    await GreetNewUser(client);
-                    userName = UniversalTranslator.CleanTelnetInput(await client.ReceiveRawMessageAsync());
-                    retries++;
-                }
-
-                if (retries >= 5)
-                {
-                    await client.SendMessageLineAsync("Too many invalid username attempts. Disconnecting...");
                     client.Disconnect();
                     return;
                 }
 
-                await client.SendMessageLineAsync($"Welcome {userName}");
-                string playerFilePath = $@"{Constellations.PLAYERSTORAGE}{userName.ToLower()}.txt";
+                userName = userName.ToLower();
 
-                bool isNewPlayer = !CommunicationsOperator.FileExists(playerFilePath);
+                // Check if the playerFile file exists to determine if this is a new user
+                string filePath = $@"{Constellations.PLAYERSTORAGE}{userName}.json";
+                bool newUser = !CommunicationsOperator.FileExists(filePath);
 
-                if (isNewPlayer)
+                if (newUser)
                 {
-                    Scribe.Scry("New player detected.");
-                    await HandleNewPlayer(client, userName);
+                    // Prompt the client to set up a password
+                    string? newPassword = await SetupNewPlayerPassword(client, userName);
+
+                    if (string.IsNullOrEmpty(newPassword))
+                    {
+                        client.Disconnect();
+                        return;
+                    }
+
+                    // Create a new playerFile file
+                    PlayerFile newPlayerFile = new()
+                    {
+                        UserName = userName,
+                        PasswordHash = CommunicationsOperator.HashPassword(newPassword), // Hash the password
+                        CreatedDate = DateTime.UtcNow
+                    };
+
+                    // Save the new playerFile file using the CommunicationsOperator
+                    await CommunicationsOperator.SavePlayerFile(newPlayerFile);
+
+                    await client.SendMessageLineAsync("Your account has been created successfully. Welcome!");
+                    Scribe.Scry($"New player file created for {userName}.");
                 }
                 else
                 {
-                    await AskForPassword(client, userName.ToLower());
+                    // Existing user: Ask for their password
+                    string? password = await AskForPassword(client);
+
+                    if (password == null)
+                    {
+                        client.Disconnect();
+                        return;
+                    }
+
+                    // Load the playerFile's file and verify the password
+                    PlayerFile? playerFile = await CommunicationsOperator.LoadPlayerFile(userName);
+
+                    if (playerFile == null || !PasswordHasher.VerifyPassword(password, playerFile.PasswordHash))
+                    {
+                        await client.SendMessageLineAsync("Invalid username or password. Disconnecting...");
+                        client.Disconnect();
+                        return;
+                    }
+
+                    await client.SendMessageLineAsync($"Welcome back, {userName}!");
+                    Scribe.Scry($"{userName} has successfully logged in.");
                 }
             }
             catch (Exception ex)
@@ -140,80 +164,48 @@ namespace OnlineGame.Network
             }
         }
 
-        /// <summary>
-        /// Greets a new user and requests their name.
-        /// </summary>
-        /// <param name="client">The client socket.</param>
-        private static async Task GreetNewUser(ClientSocket client)
-        {
-            await client.SendMessageLineAsync($"Welcome to {Constellations.GAMENAME}");
-            await client.SendANSIMessageLineAsync($"You are connecting from {client.GetSocketAddressDNS()}");
-            await client.SendMessageAsync($"By what name are you known? ");
-        }
 
-        /// <summary>
-        /// Prompts the client for a password.
-        /// </summary>
-        /// <param name="client">The client socket.</param>
-        /// <param name="userName">The username of the client.</param>
-        private static async Task AskForPassword(ClientSocket client, string userName)
+        private static async Task<string?> GreetAndGetUsername(ClientSocket client)
         {
-            await client.SendANSIMessageAsync($"Please provide the password for %^RED%^{userName}%^RESET%^: ");
-        }
-
-        /// <summary>
-        /// Prompts a new player to set a password and creates their account.
-        /// </summary>
-        /// <param name="client">The client socket.</param>
-        /// <param name="userName">The username of the new player.</param>
-        private static async Task HandleNewPlayer(ClientSocket client, string userName)
-        {
-            int retries = 0;
-            string password = string.Empty;
-
-            while (string.IsNullOrWhiteSpace(password) && retries < 5)
-            {
-                if (retries > 0)
+            return await InputValidationHelper.GetValidatedInputAsync(
+                inputProvider: async () =>
                 {
-                    await client.SendMessageLineAsync($"Attempt {retries}/5: Invalid password. Please try again.");
-                }
-
-                await AskNewPlayerPassword(client, userName);
-                password = UniversalTranslator.CleanTelnetInput(await client.ReceiveRawMessageAsync());
-                retries++;
-            }
-
-            if (retries >= 5)
-            {
-                await client.SendMessageLineAsync("Too many invalid password attempts. Disconnecting...");
-                client.Disconnect();
-                return;
-            }
-
-            try
-            {
-                await CommunicationsOperator.CreateNewPlayerFile(userName.ToLower(), password);
-                await client.SendMessageLineAsync("Your account has been created successfully.");
-                Scribe.Scry($"New player file created for {userName}.");
-            }
-            catch (Exception ex)
-            {
-                await client.SendMessageLineAsync("An error occurred while creating your account. Please try again later.");
-                Scribe.Error(ex, $"Failed to create player file for {userName}: {ex.Message}");
-            }
+                    await client.SendMessageAsync("By what name are you known? ");
+                    return UniversalTranslator.CleanTelnetInput(await client.ReceiveRawMessageAsync());
+                },
+                validationCondition: input => !string.IsNullOrWhiteSpace(input) && FilterWizard.Instance.IsValidUsername(input),
+                maxRetries: 5
+            );
         }
 
-        /// <summary>
-        /// Prompts a new player to provide a password.
-        /// </summary>
-        /// <param name="client">The client socket.</param>
-        /// <param name="userName">The username of the new player.</param>
-        private static async Task AskNewPlayerPassword(ClientSocket client, string userName)
+        private static async Task<string?> AskForPassword(ClientSocket client)
         {
-            await client.SendMessageLineAsync($"Please provide a password for {userName}");
-            await client.SendMessageLineAsync($"Passwords can be up to 20 characters long and include any terminal character.");
-            await client.SendMessageAsync($"Enter Password: ");
+            return await InputValidationHelper.GetValidatedInputAsync(
+                inputProvider: async () =>
+                {
+                    await client.SendMessageAsync("Please provide the password: ");
+                    return UniversalTranslator.CleanTelnetInput(await client.ReceiveRawMessageAsync());
+                },
+                validationCondition: input => !string.IsNullOrWhiteSpace(input) && FilterWizard.Instance.IsValidPassword(input),
+                maxRetries: 5
+            );
         }
+
+        private static async Task<string?> SetupNewPlayerPassword(ClientSocket client, string userName)
+        {
+            return await InputValidationHelper.GetValidatedInputAsync(
+                inputProvider: async () =>
+                {
+                    await client.SendMessageLineAsync($"Please provide a password for {userName}.");
+                    await client.SendMessageLineAsync("Passwords can be up to 20 characters long and include any terminal character.");
+                    await client.SendMessageAsync("Enter Password: ");
+                    return UniversalTranslator.CleanTelnetInput(await client.ReceiveRawMessageAsync());
+                },
+                validationCondition: input => !string.IsNullOrWhiteSpace(input), // Adjust if you want stricter validation.
+                maxRetries: 5
+            );
+        }
+
 
         /// <summary>
         /// Raises the StateChanged event and logs the state transition.
