@@ -4,9 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using OnlineGame.Config;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Types;
-using OnlineGame.Game.GameObjects.Player;
+using OnlineGame.Game.GameObjects.Things.Living.Player;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
 

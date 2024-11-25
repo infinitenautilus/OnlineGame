@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OnlineGame.Utility
+namespace OnlineGame.Config
 {
     public class Constellations
     {
@@ -29,7 +29,7 @@ namespace OnlineGame.Utility
         {
             get
             {
-                return @"E:\Temp\Mud\";
+                return @".\Temp\Mud\";
             }
         }
 
@@ -69,7 +69,8 @@ namespace OnlineGame.Utility
         {
             get
             {
-                return "10.0.0.85"; 
+                //   return "10.0.0.85";
+                return "127.0.0.1";
             }
         }
 

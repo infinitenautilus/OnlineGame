@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using OnlineGame.Config;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Types;
 using OnlineGame.Utility;

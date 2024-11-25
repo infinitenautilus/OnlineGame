@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using OnlineGame.Config;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Processes;
 using OnlineGame.Core.Types;
-using OnlineGame.Game.GameObjects.Player;
+using OnlineGame.Game.GameObjects.Things.Living.Player;
 using OnlineGame.Network.Client;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;

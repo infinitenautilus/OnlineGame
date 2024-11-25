@@ -1,5 +1,6 @@
 ﻿
 // File: OnlineGame/Game/GameObjects/Player.cs
+using OnlineGame.Config;
 using OnlineGame.Game.Core.Types;
 using OnlineGame.Game.GameObjects.ComponentInterfaces;
 using OnlineGame.Game.Interfaces;
@@ -8,11 +9,11 @@ using OnlineGame.Utility;
 using System.IO.Pipes;
 using System.Net.Sockets;
 
-namespace OnlineGame.Game.GameObjects.Player
+namespace OnlineGame.Game.GameObjects.Things.Living.Player
 {
-    public class PlayerObject : IPlayerObject, IHealthComponent, IMassProperties, IDescriptiveComponent
+    public class PlayerObject : IPlayerObject, IHealthComponent
     {
-        public string Name { get; set; } = "DefaultPlayer";
+        public string Name { get; set; } = "player_object";
         public string Description { get; set; } = "This is the default Player object.";
         public string LongName { get; set; } = "Default Player Object";
 
@@ -34,6 +35,10 @@ namespace OnlineGame.Game.GameObjects.Player
         public bool CanDrop { get; set; } = false;
 
         public bool CanAdjustSize { get; set; } = true;
+
+        public List<string> Adjectives { get; set; } = [];
+        public List<string> Nouns { get; set; } = [];
+        public List<string> Aliases { get; set; } = ["Player"];
 
         public GameObjectSize Size { get; set; } = GameObjectSize.Medium;
 
@@ -78,14 +83,14 @@ namespace OnlineGame.Game.GameObjects.Player
         public void AdjustHealth(int amount)
         {
             CurrentHealth -= amount;
-            
-            if(CurrentHealth < 0)
+
+            if (CurrentHealth < 0)
             {
                 //Trigger death
                 CurrentHealth = 0;
             }
-            
-            if(CurrentHealth > MaximumHealth)
+
+            if (CurrentHealth > MaximumHealth)
             {
                 CurrentHealth = MaximumHealth;
             }
@@ -99,7 +104,7 @@ namespace OnlineGame.Game.GameObjects.Player
             {
                 await WriteMessage(message + Environment.NewLine);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Scribe.Error(ex);
             }
@@ -111,7 +116,7 @@ namespace OnlineGame.Game.GameObjects.Player
             {
                 await WriteMessage(message);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Scribe.Error(ex);
             }
@@ -129,7 +134,7 @@ namespace OnlineGame.Game.GameObjects.Player
 
                 return response;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Scribe.Error(ex);
             }
@@ -145,7 +150,7 @@ namespace OnlineGame.Game.GameObjects.Player
             {
                 await MyClientSocket.SendMessageAsync(message);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Scribe.Error(ex);
             }

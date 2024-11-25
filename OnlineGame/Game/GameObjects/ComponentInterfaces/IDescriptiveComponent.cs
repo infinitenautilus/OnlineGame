@@ -8,8 +8,13 @@ namespace OnlineGame.Game.GameObjects.ComponentInterfaces
 {
     public interface IDescriptiveComponent : IComponentInterface
     {
+        string Name { get; set; }
+
         string LongName { get; set; }
         string Description { get; set; }
+
+        List<string> Adjectives { get; set; }
+        List<string> Nouns { get; set; }
 
     }
 }

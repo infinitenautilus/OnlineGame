@@ -6,6 +6,7 @@ using System.Net;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Types;
 using OnlineGame.Network.Client;
+using OnlineGame.Config;
 
 namespace OnlineGame.Network
 {

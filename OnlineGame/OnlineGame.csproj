@@ -8,9 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Config\" />
     <Folder Include="Game\Core\Processes\" />
     <Folder Include="Game\Utility\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
   </ItemGroup>
 
 </Project>
