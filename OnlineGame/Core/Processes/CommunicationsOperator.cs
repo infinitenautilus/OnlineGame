@@ -18,81 +18,8 @@ namespace OnlineGame.Core.Processes
     /// The purpose of this singleton is to act as a layer that writes and reads from the disk for you,
     /// and operates as a subsystem.
     /// </summary>
-    public class CommunicationsOperator : ISubsystem
+    public static class CommunicationsOperator
     {
-        private static readonly Lazy<CommunicationsOperator> _instance = new(() => new CommunicationsOperator());
-        public static CommunicationsOperator Instance => _instance.Value;
-
-        private SubsystemState _currentSystemState = SubsystemState.Stopped;
-
-        /// <summary>
-        /// Initializes a new instance of the CommunicationsOperator class.
-        /// </summary>
-        private CommunicationsOperator()
-        {
-            Name = "CommunicationsOperator";
-        }
-
-        /// <summary>
-        /// Gets the name of the subsystem.
-        /// </summary>
-        public string Name { get; }
-
-        /// <summary>
-        /// Gets or sets the current state of the subsystem.
-        /// Triggers the StateChanged event when the state changes.
-        /// </summary>
-        public SubsystemState CurrentSystemState
-        {
-            get => _currentSystemState;
-            private set
-            {
-                if (_currentSystemState != value)
-                {
-                    _currentSystemState = value;
-                    OnStateChanged(new SystemEventArgs(Name, value));
-                }
-            }
-        }
-
-        /// <summary>
-        /// Event triggered when the subsystem state changes.
-        /// </summary>
-        public event EventHandler<SystemEventArgs>? StateChanged;
-
-        /// <summary>
-        /// Raises the StateChanged event.
-        /// </summary>
-        /// <param name="e">Event data containing state change details.</param>
-        protected virtual void OnStateChanged(SystemEventArgs e)
-        {
-            StateChanged?.Invoke(this, e);
-        }
-
-        /// <summary>
-        /// Starts the CommunicationsOperator subsystem.
-        /// </summary>
-        public void Start()
-        {
-            if (CurrentSystemState == SubsystemState.Running)
-                return;
-
-            Console.WriteLine($"{Name} is starting...");
-            CurrentSystemState = SubsystemState.Running;
-        }
-
-        /// <summary>
-        /// Stops the CommunicationsOperator subsystem.
-        /// </summary>
-        public void Stop()
-        {
-            if (CurrentSystemState == SubsystemState.Stopped)
-                return;
-
-            Console.WriteLine($"{Name} is stopping...");
-            CurrentSystemState = SubsystemState.Stopped;
-        }
-
         /// <summary>
         /// Checks whether a file exists at the specified path.
         /// </summary>
@@ -116,7 +43,7 @@ namespace OnlineGame.Core.Processes
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"File not found: {filePath}");
 
-            using var reader = new StreamReader(filePath, Encoding.UTF8);
+            using StreamReader reader = new(filePath, Encoding.UTF8);
             return await reader.ReadToEndAsync();
         }
 
@@ -149,11 +76,13 @@ namespace OnlineGame.Core.Processes
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"File not found: {filePath}");
 
-            var lines = new List<string>();
-            using var reader = new StreamReader(filePath, Encoding.UTF8);
+            List<string> lines = [];
+
+            using StreamReader reader = new(filePath, Encoding.ASCII);
+            
             while (!reader.EndOfStream)
             {
-                var line = await reader.ReadLineAsync();
+                string? line = await reader.ReadLineAsync();
                 if (line != null)
                     lines.Add(line);
             }
@@ -162,8 +91,9 @@ namespace OnlineGame.Core.Processes
 
             if (useThreadSafeList)
             {
-                var threadSafeList = new ThreadSafeList<string>();
-                foreach (var line in parsedLines)
+                ThreadSafeList<string> threadSafeList = [];
+
+                foreach (string[] line in parsedLines)
                 {
                     threadSafeList.Add(string.Join(",", line));
                 }
@@ -197,16 +127,56 @@ namespace OnlineGame.Core.Processes
         // Hash password using a hashing algorithm (e.g., SHA256 for demonstration)
         public static string HashPassword(string password)
         {
-            using var sha256 = SHA256.Create();
-            var hashedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            using SHA256 sha256 = SHA256.Create();
+            byte[] hashedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            
             return Convert.ToBase64String(hashedBytes);
         }
 
         // Compare a hashed password against a plain text password
         public static bool VerifyPassword(string enteredPassword, string storedHashedPassword)
         {
-            var hashedPassword = HashPassword(enteredPassword);
+            string hashedPassword = HashPassword(enteredPassword);
             return hashedPassword == storedHashedPassword;
         }
+
+        public static bool IsValidPassword(string? password)
+        {
+            // Check if password is null or empty
+            if (string.IsNullOrEmpty(password))
+                return false;
+
+            // Check if password length is between 5 and 20 characters
+            if (password.Length < 5 || password.Length > 20)
+                return false;
+
+            // Check if all characters in the password are on a standard keyboard
+            // Standard ASCII printable characters range from 32 (space) to 126 (~)
+            return password.All(c => c >= 32 && c <= 126);
+        }
+
+
+        /// <summary>
+        /// Validates if the username meets the required criteria.
+        /// </summary>
+        /// <param name="username">The username to validate.</param>
+        /// <returns>True if valid, otherwise false.</returns>
+        public static bool IsValidUsername(string username)
+        {
+            // Check for null, empty, or whitespace, and maximum length constraint
+            if (string.IsNullOrWhiteSpace(username) || username.Length > 14)
+                return false;
+
+            // Check if the name is banned
+            if (FilterWizard.Instance.IsNameBanned(username))
+                return false;
+
+            // Check if all characters are lowercase alphabetical
+            if (!username.All(c => c >= 'a' && c <= 'z'))
+                return false;
+
+            return true;
+        }
+
     }
 }

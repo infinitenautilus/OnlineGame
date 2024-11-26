@@ -7,6 +7,7 @@ using OnlineGame.Core.Processes;
 using OnlineGame.Core.Types;
 using OnlineGame.Game.Core.Processes;
 using OnlineGame.Game.GameObjects.Things.Living.Player;
+using OnlineGame.Game.Interfaces;
 using OnlineGame.Network.Client;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
@@ -99,11 +100,18 @@ namespace OnlineGame.Network
 
                 bool newUser = !await PlayerService.UserNameExistsAsync(userName);
 
-                await RequestPassword(newUser, userName, client);
+                string password = await RequestPassword(newUser, userName, client);
 
-                await client.WriteLineAsync($"Welcome back, {userName}!");
+                PlayerObject tempPlayer = await PlayerService.InitializeNewPlayer(userName, password);
                 
-                Scribe.Scry($"{userName} has successfully logged in.");
+                tempPlayer.CreatedDate = DateTime.Now;
+
+                await tempPlayer.SendMessageAsync("Welcome to the MUD.");
+
+                Scribe.Scry($"Player loaded: {tempPlayer.Name}");
+
+                await PlayerService.SavePlayerAsync(tempPlayer);
+                
             }
             catch (Exception ex)
             {
@@ -141,51 +149,51 @@ namespace OnlineGame.Network
             
         }
 
-        private static async Task RequestPassword(bool newUser, string userName, ClientSocket client)
+        private static async Task<string> RequestPassword(bool newUser, string userName, ClientSocket client)
         {
-            if (newUser)
+            try
             {
-                // Prompt the client to set up a password
-                string? newPassword = await SetupNewPlayerPassword(client, userName);
-
-                if (string.IsNullOrEmpty(newPassword))
+                if (newUser)
                 {
-                    client.Disconnect();
-                    return;
+                    // Prompt the client to set up a password
+                    string? newPassword = await SetupNewPlayerPassword(client, userName);
+
+                    if (string.IsNullOrEmpty(newPassword))
+                    {
+                        client.Disconnect();
+                        return string.Empty;
+                    }
+
+                    return newPassword;
                 }
-
-                // Create a new player object
-                PlayerObject newPlayerObj = new()
+                else
                 {
-                    UserName = userName,
-                    PasswordHash = CommunicationsOperator.HashPassword(newPassword),
-                    CreatedDate = DateTime.UtcNow
-                };
+                    // Existing user: Ask for their password once
+                    string? password = await AskForPassword(client);
 
-                await PlayerService.SavePlayerAsync(newPlayerObj);
+                    if (password == null)
+                    {
+                        client.Disconnect();
+                        return string.Empty;
+                    }
 
-                await client.WriteLineAsync("Your account has been created successfully. Welcome!");
-                Scribe.Scry($"New player file created for {userName}.");
+                    // Validate password
+                    PlayerObject? player = await PlayerService.LoadPlayerAsync(userName);
+
+                    if (player == null || !CommunicationsOperator.VerifyPassword(password, player.PasswordHash))
+                    {
+                        await client.WriteLineAsync("Invalid password. Disconnecting.");
+                        client.Disconnect();
+                        return string.Empty;
+                    }
+
+                    return password;
+                }
             }
-            else
+            catch(Exception ex)
             {
-                // Existing user: Ask for their password once
-                string? password = await AskForPassword(client);
-
-                if (password == null)
-                {
-                    client.Disconnect();
-                    return;
-                }
-
-                // Validate password
-                PlayerObject? player = await PlayerService.LoadPlayerAsync(userName);
-                if (player == null || !CommunicationsOperator.VerifyPassword(password, player.PasswordHash))
-                {
-                    await client.WriteLineAsync("Invalid password. Disconnecting.");
-                    client.Disconnect();
-                    return;
-                }
+                Scribe.Error(ex);
+                return string.Empty;
             }
         }
 
@@ -195,9 +203,9 @@ namespace OnlineGame.Network
                 inputProvider: async () =>
                 {
                     await client.WriteAsync("By what name are you known? ");
-                    return UniversalTranslator.CleanTelnetInput((await client.ReceiveAsync()), client.TerminalColumns);
+                    return await client.ReceiveAsync();
                 },
-                validationCondition: input => !string.IsNullOrWhiteSpace(input) && FilterWizard.Instance.IsValidUsername(input),
+                validationCondition: input => !string.IsNullOrWhiteSpace(input) && CommunicationsOperator.IsValidUsername(input),
                 maxRetries: 5
             );
         }
@@ -208,10 +216,10 @@ namespace OnlineGame.Network
                 inputProvider: async () =>
                 {
                     await client.WriteAsync("Please provide the password: ");
-                    return UniversalTranslator.CleanTelnetInput(await client.ReceiveAsync(), client.TerminalColumns);
+                    return await client.ReceiveAsync();
                 },
-                validationCondition: input => !string.IsNullOrWhiteSpace(input) && FilterWizard.Instance.IsValidPassword(input),
-                maxRetries: 5
+                validationCondition: input => CommunicationsOperator.IsValidPassword(input),
+                maxRetries: 3
             );
         }
 
@@ -221,14 +229,15 @@ namespace OnlineGame.Network
                 inputProvider: async () =>
                 {
                     await client.WriteLineAsync($"Please provide a password for {userName}.");
-                    await client.WriteLineAsync("Passwords can be up to 20 characters long and include any terminal character.");
+                    await client.WriteLineAsync("Passwords must be between 5 and 20 characters long and include any terminal character.");
                     await client.WriteAsync("Enter Password: ");
 
-                    
-                    return UniversalTranslator.CleanTelnetInput(await client.ReceiveAsync(), client.TerminalColumns);
+
+                    return await client.ReceiveAsync();
                 },
-                validationCondition: input => !string.IsNullOrWhiteSpace(input), // Adjust if you want stricter validation.
-                maxRetries: 5
+
+                validationCondition: input => CommunicationsOperator.IsValidPassword(input),
+                maxRetries: 3
             );
         }
 

@@ -21,7 +21,7 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
         [BsonRepresentation(MongoDB.Bson.BsonType.ObjectId)]
         public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
         public ClientSocket? MyClientSocket { get; private set; }
-        public bool IsGameObject { get; } = true;
+        public static bool IsGameObject { get; } = true;
         public bool IsLiving { get; set; } = true;
         public string Name { get; set; } = "player_object";
         public string Description { get; set; } = "This is the default Player object.";
@@ -29,7 +29,7 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
 
         public string UserName { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
-        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedDate { get; set; }
 
         public int MaximumHealth { get; set; } = 100;
         public int CurrentHealth { get; set; } = 100;
@@ -59,10 +59,6 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
             MyClientSocket = socket;
         }
 
-        public void Initialize()
-        {
-
-        }
         public void Update()
         {
 
@@ -84,7 +80,7 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
             }
         }
 
-        public async Task SendMessage(string message)
+        public async Task SendMessageAsync(string message)
         {
             try
             {
@@ -99,7 +95,7 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
             }
         }
 
-        public async Task<string> ReadMessage()
+        public async Task<string> ReadMessageAsync()
         {
             if(MyClientSocket == null)
             {
@@ -118,7 +114,5 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
                 return string.Empty;
             }
         }
-
-
     }
 }

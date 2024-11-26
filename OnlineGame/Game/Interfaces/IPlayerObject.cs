@@ -10,9 +10,9 @@ namespace OnlineGame.Game.Interfaces
 {
     public interface IPlayerObject : ILiving
     {
-        Task<string> ReadMessage();
+        Task<string> ReadMessageAsync();
 
-        Task SendMessage(string message);
+        Task SendMessageAsync(string message);
         // Any additional player-specific methods or properties can go here
     }
 }

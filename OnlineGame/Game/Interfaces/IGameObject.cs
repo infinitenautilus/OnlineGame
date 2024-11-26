@@ -10,7 +10,7 @@ namespace OnlineGame.Game.Interfaces
 {
     public interface IGameObject : IUpdateable, IDescriptiveComponent, IMassProperties
     {
-        bool IsGameObject { get; }
+        static bool IsGameObject { get; }
 
     }
 }

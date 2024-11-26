@@ -117,6 +117,12 @@ namespace OnlineGame.Core.Processes
             return message;
         }
 
+        public static string CapitalizeFirstLetter(string input)
+        {
+            char first = input[0];
+            return char.ToUpper(first) + input[1..];
+        }
+
         public static string CleanTelnetInput(string input, int columns)
         {
             // Step 1: Remove unwanted control characters, keeping only newlines and carriage returns.

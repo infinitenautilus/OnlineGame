@@ -33,14 +33,6 @@ namespace OnlineGame.Config
             }
         }
 
-        public static string PLAYERSTORAGE
-        {
-            get
-            {
-                return $@"{STORAGEDIR}Players\";
-            }
-        }
-
         public static string BANNEDNAMESFILE
         {
             get

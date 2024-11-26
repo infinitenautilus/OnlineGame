@@ -8,8 +8,6 @@ namespace OnlineGame.Core.Interfaces
 {
     public interface IUpdateable
     {
-        void Initialize();
-
         void Update();
     }
 }

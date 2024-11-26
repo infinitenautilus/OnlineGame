@@ -5,20 +5,15 @@ using System.Threading.Tasks;
 using OnlineGame.Config;
 using OnlineGame.Game.GameObjects.Things.Living.Player;
 using OnlineGame.Utility;
+using OnlineGame.Core.Processes;
+using OnlineGame.Utility.Types;
 
 namespace OnlineGame.Game.Core.Processes 
 { 
-    public class PlayerService
+    public static class PlayerService
     {
-        // Singleton instance
-        private static readonly Lazy<PlayerService> _instance = new(() => new PlayerService());
-
-        // Private constructor
-        private PlayerService() { }
-
-        // Public accessor for the singleton instance
-        public static PlayerService Instance => _instance.Value;
-
+        public static ThreadSafeList<PlayerObject> ActivePlayers { get; private set; } = [];
+        
         // MongoDB collection retrieval
         private static IMongoCollection<PlayerObject> GetPlayerCollection()
         {
@@ -90,6 +85,46 @@ namespace OnlineGame.Game.Core.Processes
             {
                 Scribe.Error(ex, $"Error checking if UserName exists: {userName}");
                 return false;
+            }
+        }
+
+        public static async Task<PlayerObject> InitializeNewPlayer(string userName, string password)
+        {
+            if(await UserNameExistsAsync(userName))
+            {
+                return await LoadPlayerAsync(userName);
+            }
+
+            PlayerObject temporaryPlayerObject = new();
+            userName = userName.ToLower();
+            string properName = $"{char.ToUpper(userName[0])}{userName[1..]}";
+
+            temporaryPlayerObject.PasswordHash = CommunicationsOperator.HashPassword(password);
+            temporaryPlayerObject.UserName = userName;
+            temporaryPlayerObject.Description = "A handsome lad or lass or non-binary pal.";
+            temporaryPlayerObject.Name = properName;
+            temporaryPlayerObject.LongName = properName + " the Adventurer";
+
+            return temporaryPlayerObject;
+        }
+
+        public static void Subscribe(PlayerObject player)
+        {
+            ActivePlayers.Add(player);
+        }
+
+        public static void Unsubscribe(PlayerObject player)
+        {
+            ActivePlayers.Remove(player);
+        }
+
+        public static void UnsubscribeAll()
+        {
+            var tempList = ActivePlayers;
+
+            foreach(PlayerObject player in tempList)
+            {
+                Unsubscribe(player);
             }
         }
     }

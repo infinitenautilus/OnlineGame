@@ -90,28 +90,6 @@ namespace OnlineGame.Core.Processes
         }
 
         /// <summary>
-        /// Validates if the username meets the required criteria.
-        /// </summary>
-        /// <param name="username">The username to validate.</param>
-        /// <returns>True if valid, otherwise false.</returns>
-        public bool IsValidUsername(string username)
-        {
-            // Check for null, empty, or whitespace, and maximum length constraint
-            if (string.IsNullOrWhiteSpace(username) || username.Length > 14)
-                return false;
-
-            // Check if the name is banned
-            if (IsNameBanned(username))
-                return false;
-
-            // Check if all characters are lowercase alphabetical
-            if (!username.All(c => c >= 'a' && c <= 'z'))
-                return false;
-
-            return true;
-        }
-
-        /// <summary>
         /// Validates if the password meets the required criteria.
         /// </summary>
         /// <param name="password">The password to validate.</param>

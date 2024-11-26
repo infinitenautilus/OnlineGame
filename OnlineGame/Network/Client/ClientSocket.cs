@@ -235,11 +235,6 @@ namespace OnlineGame.Network.Client
             }
         }
 
-        public void Initialize()
-        {
-
-        }
-
         public void Update()
         {
             if (_disposed) return;

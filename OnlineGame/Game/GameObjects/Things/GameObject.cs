@@ -22,11 +22,6 @@ namespace OnlineGame.Game.GameObjects.Things
         public GameObjectSize Size { get; set; } = GameObjectSize.Medium;
         public float RealWeight { get; set; } = 100f;
 
-        public void Initialize()
-        {
-
-        }
-
         public void Update()
         {
         }

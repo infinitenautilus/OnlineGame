@@ -72,7 +72,7 @@ namespace OnlineGame.Game.Core.Processes
         /// Asynchronously notifies all subscribed players with a message.
         /// </summary>
         /// <param name="message">The message to broadcast.</param>
-        public async Task NotifyAllPlayersAsync(string message)
+        public async Task Broadcast(string message)
         {
             foreach (PlayerObject? player in _playerObjects)
             {
