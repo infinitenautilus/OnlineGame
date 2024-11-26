@@ -12,8 +12,6 @@ namespace OnlineGame.Game.Core.Processes
 { 
     public static class PlayerService
     {
-        public static ThreadSafeList<PlayerObject> ActivePlayers { get; private set; } = [];
-        
         // MongoDB collection retrieval
         private static IMongoCollection<PlayerObject> GetPlayerCollection()
         {
@@ -28,6 +26,8 @@ namespace OnlineGame.Game.Core.Processes
         {
             try
             {
+                await player.SendMessageAsync("Saving...");
+
                 IMongoCollection<PlayerObject> collection = GetPlayerCollection();
                 FilterDefinition<PlayerObject> filter = Builders<PlayerObject>.Filter.Eq(p => p.UserName, player.UserName);
 
@@ -106,26 +106,6 @@ namespace OnlineGame.Game.Core.Processes
             temporaryPlayerObject.LongName = properName + " the Adventurer";
 
             return temporaryPlayerObject;
-        }
-
-        public static void Subscribe(PlayerObject player)
-        {
-            ActivePlayers.Add(player);
-        }
-
-        public static void Unsubscribe(PlayerObject player)
-        {
-            ActivePlayers.Remove(player);
-        }
-
-        public static void UnsubscribeAll()
-        {
-            var tempList = ActivePlayers;
-
-            foreach(PlayerObject player in tempList)
-            {
-                Unsubscribe(player);
-            }
         }
     }
 }

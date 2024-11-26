@@ -96,6 +96,8 @@ namespace OnlineGame.Core.Processes
                 {
                     Scribe.Notification($"Client {client.Name} unsubscribed.");
                     await BroadcastMessage($"Client {client.Name} unsubscribed.");
+                    
+                    KeepAliveTimer.Unregister(client);
 
                     client.Disconnect();
                 }

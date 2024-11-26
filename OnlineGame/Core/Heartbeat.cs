@@ -1,9 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Utility;
@@ -14,8 +12,9 @@ namespace OnlineGame.Core
     public class Heartbeat
     {
         private readonly System.Timers.Timer _timer;
-        private readonly ThreadSafeList<IUpdateable> _registeredObjects = [];
 
+        // Dictionary to hold registered objects and their respective actions
+        private readonly ConcurrentDictionary<IUpdateable, Action> _registeredActions = new();
 
         public Heartbeat(double interval)
         {
@@ -27,27 +26,29 @@ namespace OnlineGame.Core
         public void Start() => _timer.Start();
         public void Stop() => _timer.Stop();
 
-        public void Register(IUpdateable updateable)
+        // Register with a specific action (or default to Update)
+        public void Register(IUpdateable updateable, Action? customAction = null)
         {
-            if(!_registeredObjects.Contains(updateable)) 
-                _registeredObjects.Add(updateable);
+            if (!_registeredActions.ContainsKey(updateable))
+            {
+                _registeredActions[updateable] = customAction ?? updateable.Update;
+            }
         }
 
         public void Unregister(IUpdateable updateable)
         {
-            if (_registeredObjects.Contains(updateable))
-                _registeredObjects.Remove(updateable);
+            _registeredActions.TryRemove(updateable, out _);
         }
 
         private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
         {
-            foreach(IUpdateable u in _registeredObjects.ToList())
+            foreach (var (updateable, action) in _registeredActions.ToList())
             {
                 try
                 {
-                    u.Update();
+                    action.Invoke(); // Invoke the custom or default action
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Scribe.Error(ex);
                 }

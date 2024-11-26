@@ -4,6 +4,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using OnlineGame.Config;
+using OnlineGame.Game.Core.Processes;
 using OnlineGame.Game.Core.Types;
 using OnlineGame.Game.GameObjects.ComponentInterfaces;
 using OnlineGame.Game.Interfaces;
@@ -41,10 +42,6 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
         public bool CanDrop { get; set; } = false;
 
         public bool CanAdjustSize { get; set; } = true;
-
-        public List<string> Adjectives { get; set; } = [];
-        public List<string> Nouns { get; set; } = [];
-        public List<string> Aliases { get; set; } = ["Player"];
 
         public GameObjectSize Size { get; set; } = GameObjectSize.Medium;
         public float RealWeight { get; set; } = 1000f;

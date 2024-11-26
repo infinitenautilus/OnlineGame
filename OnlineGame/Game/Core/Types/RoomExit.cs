@@ -7,45 +7,27 @@ namespace OnlineGame.Game.Core.Types
 {
     public class RoomExit
     {
-        // Dictionary<Exit Direction, Exit Room ObjectId Reference>
-        [BsonRepresentation(BsonType.ObjectId)]
-        public Dictionary<string, string> ExitDirectionDictionary { get; set; } = [];
-
-        /// <summary>
-        /// Validates if a direction exists in the exit dictionary.
-        /// </summary>
-        public bool ValidExit(string direction)
+        public RoomExit(string exitDirectionName, string exitId)
         {
-            return ExitDirectionDictionary.ContainsKey(direction);
+            ExitDirection = exitDirectionName;
+            ExitId = exitId;
+            HasDoor = false;
+            LockedExit = false;
         }
 
-        /// <summary>
-        /// Retrieves the database reference for the room connected to the given direction.
-        /// </summary>
-        public string ExitFromDirection(string direction)
+        public RoomExit(string exitDirectionName, string exitId, bool isDoor, bool isLocked)
         {
-            if (ExitDirectionDictionary.TryGetValue(direction, out var roomId))
-            {
-                return roomId;
-            }
-
-            return string.Empty;
+            ExitDirection = exitDirectionName;
+            ExitId = exitId;
+            HasDoor = isDoor;
+            LockedExit = isLocked;
         }
 
-        /// <summary>
-        /// Adds or updates an exit with a direction and corresponding database reference.
-        /// </summary>
-        public void AddOrUpdateExit(string direction, string roomId)
-        {
-            ExitDirectionDictionary[direction] = roomId;
-        }
+        public string ExitDirection { get; set; } = string.Empty;
+        public string ExitId { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Removes an exit based on its direction.
-        /// </summary>
-        public void RemoveExit(string direction)
-        {
-            ExitDirectionDictionary.Remove(direction);
-        }
+        public bool HasDoor { get; set; } = false;
+        public bool LockedExit { get; set; } = false;
+
     }
 }

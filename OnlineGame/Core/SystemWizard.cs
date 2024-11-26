@@ -6,6 +6,7 @@ using System.Reflection;
 using OnlineGame.Core.Interfaces;
 using OnlineGame.Core.Processes;
 using OnlineGame.Core.Types;
+using OnlineGame.Game.Core.Processes;
 using OnlineGame.Network;
 using OnlineGame.Utility;
 using OnlineGame.Utility.Types;
@@ -75,7 +76,7 @@ namespace OnlineGame.Core
             throw new KeyNotFoundException($"Subsystem {name} not found in GetSubsystem(string name)");
         }
 
-        public void StartAll()
+        public async void StartAll()
         {
             try
             {
@@ -84,6 +85,8 @@ namespace OnlineGame.Core
                     LoadSubsystemsFromNamespace("OnlineGame.Core.Processes");
                     _subsystems.TryAdd(Sentinel.Instance.Name, Sentinel.Instance);
                     _subsystems.TryAdd(GateKeeper.Instance.Name, GateKeeper.Instance);
+                    GameDirector.Instance.Start();
+                    await RoomRepository.Instance.Start();
                 }
 
                 foreach (ISubsystem subsystem in _subsystems.Values)
@@ -118,6 +121,8 @@ namespace OnlineGame.Core
                     {
                         UnloadSubsystemFromNamespace("OnlineGame.Core.Processes");
                         subsystem.Stop();
+                        
+                        GameDirector.Instance.Stop();
                         Scribe.Notification($"Subsystem {subsystem.Name} stopped");
                     }
                     else

@@ -12,9 +12,5 @@ namespace OnlineGame.Game.GameObjects.ComponentInterfaces
 
         string LongName { get; set; }
         string Description { get; set; }
-
-        List<string> Adjectives { get; set; }
-        List<string> Nouns { get; set; }
-
     }
 }

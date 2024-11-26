@@ -102,16 +102,29 @@ namespace OnlineGame.Network
 
                 string password = await RequestPassword(newUser, userName, client);
 
-                PlayerObject tempPlayer = await PlayerService.InitializeNewPlayer(userName, password);
-                
-                tempPlayer.CreatedDate = DateTime.Now;
+                PlayerObject tempPlayer = new();
 
-                await tempPlayer.SendMessageAsync("Welcome to the MUD.");
+                if(newUser)
+                {
+                    tempPlayer = await PlayerService.InitializeNewPlayer(userName, password);
 
-                Scribe.Scry($"Player loaded: {tempPlayer.Name}");
+                    tempPlayer.CreatedDate = DateTime.Now;
 
-                await PlayerService.SavePlayerAsync(tempPlayer);
-                
+                    await tempPlayer.SendMessageAsync("Welcome to the MUD.");
+
+                    Scribe.Scry($"Player loaded: {tempPlayer.Name}");
+                    
+                    tempPlayer.SetSocket(client);
+                    
+                    await PlayerService.SavePlayerAsync(tempPlayer);
+                }
+                else
+                {
+                    tempPlayer = await PlayerService.LoadPlayerAsync(userName);
+                    tempPlayer.SetSocket(client);
+                }
+
+                _ = GameDirector.Instance.EnterGameLoop(tempPlayer);
             }
             catch (Exception ex)
             {
