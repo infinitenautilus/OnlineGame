@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Game\Core\Processes\" />
     <Folder Include="Game\Utility\" />
   </ItemGroup>
 

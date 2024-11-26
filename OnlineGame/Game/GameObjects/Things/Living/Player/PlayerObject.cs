@@ -22,6 +22,7 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
         public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
         public ClientSocket? MyClientSocket { get; private set; }
         public bool IsGameObject { get; } = true;
+        public bool IsLiving { get; set; } = true;
         public string Name { get; set; } = "player_object";
         public string Description { get; set; } = "This is the default Player object.";
         public string LongName { get; set; } = "Default Player Object";
@@ -32,8 +33,6 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
 
         public int MaximumHealth { get; set; } = 100;
         public int CurrentHealth { get; set; } = 100;
-
-        public string PlayerStorageFileName { get; } = $@"{Constellations.PLAYERSTORAGE}default.json";
 
         public string PlayerName { get; set; } = "Bob";
 
@@ -60,8 +59,6 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
             MyClientSocket = socket;
         }
 
-     
-
         public void Initialize()
         {
 
@@ -87,94 +84,14 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
             }
         }
 
-        public async Task SendMessageNewLine(string message)
-        {
-            if (MyClientSocket == null) return;
-
-            try
-            {
-                await WriteMessage(message + Environment.NewLine);
-            }
-            catch (Exception ex)
-            {
-                Scribe.Error(ex);
-            }
-        }
-
         public async Task SendMessage(string message)
         {
             try
             {
-                await WriteMessage(message);
-            }
-            catch (Exception ex)
-            {
-                Scribe.Error(ex);
-            }
-        }
+                if (MyClientSocket == null)
+                    return;
 
-        public async Task<string> ReceiveMessage()
-        {
-            if (MyClientSocket == null) return string.Empty;
-
-            try
-            {
-                string? response = await MyClientSocket.ReceiveANSIMessageAsync();
-
-                if (response == null) return string.Empty;
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                Scribe.Error(ex);
-            }
-
-            return string.Empty;
-        }
-
-        private async Task WriteMessage(string message)
-        {
-            if (MyClientSocket == null) return;
-
-            try
-            {
-                await MyClientSocket.SendANSIMessageAsync(message);
-            }
-            catch (Exception ex)
-            {
-                Scribe.Error(ex);
-            }
-        }
-
-        private static IMongoCollection<PlayerObject> GetPlayerCollection()
-        {
-            MongoClient client = new(Constellations.DATABASECONNECTIONSTRING);
-            IMongoDatabase database = client.GetDatabase(Constellations.DATABASENAMESTRING);
-
-            return database.GetCollection<PlayerObject>("Players");
-        }
-
-        public static async Task SavePlayerAsync(PlayerObject player)
-        {
-            try
-            {
-                IMongoCollection<PlayerObject> collection = GetPlayerCollection();
-                FilterDefinition<PlayerObject> filter = Builders<PlayerObject>.Filter.Eq(p => p.UserName, player.UserName);
-
-                PlayerObject existingPlayer = await collection.Find(filter).FirstOrDefaultAsync();
-
-                if (existingPlayer == null)
-                {
-                    Console.WriteLine("Existing player not found.");
-                    await collection.InsertOneAsync(player);
-                }
-                else
-                {
-                    player.Id = existingPlayer.Id;
-                    Console.WriteLine("Existing player found.");
-                    await collection.ReplaceOneAsync(filter, player);
-                }
+                await MyClientSocket.WriteLineAsync(message);
             }
             catch(Exception ex)
             {
@@ -182,47 +99,26 @@ namespace OnlineGame.Game.GameObjects.Things.Living.Player
             }
         }
 
-        public static async Task<PlayerObject?> LoadPlayerAsync(string userName)
+        public async Task<string> ReadMessage()
         {
+            if(MyClientSocket == null)
+            {
+                return string.Empty;
+            }
+
             try
             {
-                IMongoCollection<PlayerObject> collection = GetPlayerCollection();
-                FilterDefinition<PlayerObject> filter = Builders<PlayerObject>.Filter.Eq(p => p.UserName, userName);
+                string message = await MyClientSocket.ReceiveAsync();
 
-                return await collection.Find(filter).FirstOrDefaultAsync();
+                return message;
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
                 Scribe.Error(ex);
-
-                return null;
+                return string.Empty;
             }
         }
 
-        public static async Task<bool> UserNameExistsAsync(string userName)
-        {
-            try
-            {
-                IMongoCollection<PlayerObject> collection = GetPlayerCollection();
-                FilterDefinition<PlayerObject> filter = Builders<PlayerObject>.Filter.Eq(p => p.UserName, userName);
-
-                var userExists = await collection.Find(filter).AnyAsync();
-
-                if(userExists)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Scribe.Error(ex, $"Error checking if userName exists: {userName}");
-                return false;
-            }
-        }
 
     }
 }

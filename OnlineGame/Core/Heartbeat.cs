@@ -14,7 +14,7 @@ namespace OnlineGame.Core
     public class Heartbeat
     {
         private readonly System.Timers.Timer _timer;
-        private readonly ThreadSafeList<IUpdateable> _registeredObjects = new();
+        private readonly ThreadSafeList<IUpdateable> _registeredObjects = [];
 
 
         public Heartbeat(double interval)

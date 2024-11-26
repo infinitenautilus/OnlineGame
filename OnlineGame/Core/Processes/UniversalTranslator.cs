@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 using OnlineGame.Core.Types;
 using OnlineGame.Utility.Types;
 using OnlineGame.Core.Interfaces;
+using OnlineGame.Network.Client;
+using System.Text;
 
 namespace OnlineGame.Core.Processes
 {
@@ -75,6 +77,8 @@ namespace OnlineGame.Core.Processes
 
         public SubsystemState CurrentSystemState { get; private set; } = SubsystemState.Stopped;
 
+        private static readonly char[] separator = [];
+
         public event EventHandler<SystemEventArgs>? StateChanged;
 
         public void Start()
@@ -100,7 +104,7 @@ namespace OnlineGame.Core.Processes
         /// </summary>
         /// <param name="message">The input message containing custom tags.</param>
         /// <returns>The translated message with ASCII color codes.</returns>
-        public string TranslateMessage(string message)
+        public string TranslateMessageToANSI(string message)
         {
             if (string.IsNullOrWhiteSpace(message))
                 return message;
@@ -113,9 +117,40 @@ namespace OnlineGame.Core.Processes
             return message;
         }
 
-        public static string CleanTelnetInput(string input)
+        public static string CleanTelnetInput(string input, int columns)
         {
-            return new string(input.Where(c => !char.IsControl(c) || c == '\n' || c == '\r').ToArray()).Trim();
+            // Step 1: Remove unwanted control characters, keeping only newlines and carriage returns.
+            string cleanedInput = new string(input.Where(c => !char.IsControl(c) || c == '\n' || c == '\r').ToArray()).Trim();
+
+            // Step 2: Split the input into words.
+            string[] words = cleanedInput.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+
+            // Step 3: Build the output with word wrapping.
+            StringBuilder wrappedText = new();
+            int currentLineLength = 0;
+
+            foreach (string word in words)
+            {
+                // If adding this word would exceed the column limit, move to the next line.
+                if (currentLineLength + word.Length > columns)
+                {
+                    wrappedText.AppendLine();
+                    currentLineLength = 0;
+                }
+
+                // Add a space before the word if it's not the start of a new line.
+                if (currentLineLength > 0)
+                {
+                    wrappedText.Append(' ');
+                    currentLineLength++;
+                }
+
+                // Append the word and update the current line length.
+                wrappedText.Append(word);
+                currentLineLength += word.Length;
+            }
+
+            return wrappedText.ToString();
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using OnlineGame.Config;
@@ -193,21 +194,19 @@ namespace OnlineGame.Core.Processes
             writer.Close();
         }
 
+        // Hash password using a hashing algorithm (e.g., SHA256 for demonstration)
         public static string HashPassword(string password)
         {
-            return EncryptPassword(password);
+            using var sha256 = SHA256.Create();
+            var hashedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            return Convert.ToBase64String(hashedBytes);
         }
 
-        /// <summary>
-        /// Encrypts a password for storage.
-        /// </summary>
-        /// <param name="password">The plaintext password to encrypt.</param>
-        /// <returns>The encrypted password.</returns>
-        private static string EncryptPassword(string password)
+        // Compare a hashed password against a plain text password
+        public static bool VerifyPassword(string enteredPassword, string storedHashedPassword)
         {
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            byte[] hashBytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(hashBytes);
+            var hashedPassword = HashPassword(enteredPassword);
+            return hashedPassword == storedHashedPassword;
         }
     }
 }

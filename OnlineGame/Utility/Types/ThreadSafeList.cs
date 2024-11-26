@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Threading;
 
 namespace OnlineGame.Utility.Types
@@ -11,7 +10,7 @@ namespace OnlineGame.Utility.Types
     /// A thread-safe list implementation that allows concurrent reads and synchronized writes.
     /// </summary>
     /// <typeparam name="T">The type of elements in the list.</typeparam>
-    public class ThreadSafeList<T>
+    public class ThreadSafeList<T> : IEnumerable<T>
     {
         private readonly List<T> _internalList = [];
         private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.NoRecursion);
@@ -69,7 +68,7 @@ namespace OnlineGame.Utility.Types
         }
 
         /// <summary>
-        /// Gets an item at a specific index in a thread-safe manner.
+        /// Gets or sets an item at a specific index in a thread-safe manner.
         /// </summary>
         /// <param name="index">The zero-based index of the item.</param>
         /// <returns>The item at the specified index.</returns>
@@ -98,23 +97,6 @@ namespace OnlineGame.Utility.Types
                 {
                     _lock.ExitWriteLock();
                 }
-            }
-        }
-
-        /// <summary>
-        /// Gets a snapshot of the current items in the list in a thread-safe manner.
-        /// </summary>
-        /// <returns>A copy of the items in the list.</returns>
-        public List<T> ToList()
-        {
-            _lock.EnterReadLock();
-            try
-            {
-                return new List<T>(_internalList);
-            }
-            finally
-            {
-                _lock.ExitReadLock();
             }
         }
 
@@ -169,6 +151,52 @@ namespace OnlineGame.Utility.Types
             {
                 _lock.ExitReadLock();
             }
+        }
+
+        /// <summary>
+        /// Creates a snapshot of the current items in the list in a thread-safe manner.
+        /// </summary>
+        /// <returns>A copy of the items in the list.</returns>
+        public List<T> ToList()
+        {
+            _lock.EnterReadLock();
+            try
+            {
+                return new List<T>(_internalList);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
+        }
+
+        /// <summary>
+        /// Gets an enumerator that iterates through the collection in a thread-safe manner.
+        /// </summary>
+        /// <returns>An enumerator for the collection.</returns>
+        public IEnumerator<T> GetEnumerator()
+        {
+            List<T> snapshot;
+            _lock.EnterReadLock();
+            try
+            {
+                snapshot = new List<T>(_internalList);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
+
+            return snapshot.GetEnumerator();
+        }
+
+        /// <summary>
+        /// Gets a non-generic enumerator for the collection.
+        /// </summary>
+        /// <returns>An enumerator for the collection.</returns>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

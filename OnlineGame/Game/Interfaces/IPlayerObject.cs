@@ -8,16 +8,11 @@ using OnlineGame.Network.Client;
 
 namespace OnlineGame.Game.Interfaces
 {
-    public interface IPlayerObject : IUpdateable, ILiving
+    public interface IPlayerObject : ILiving
     {
-        string PlayerStorageFileName { get; }
+        Task<string> ReadMessage();
 
-        Task<string> ReceiveMessage();
-
-        Task SendMessageNewLine(string message);
         Task SendMessage(string message);
-
-
         // Any additional player-specific methods or properties can go here
     }
 }

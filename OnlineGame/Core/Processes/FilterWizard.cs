@@ -38,7 +38,7 @@ namespace OnlineGame.Core.Processes
         /// <summary>
         /// Thread-safe list of banned words.
         /// </summary>
-        public ThreadSafeList<string> BannedWords { get; private set; } = new();
+        public ThreadSafeList<string> BannedWords { get; private set; } = [];
 
         // Private constructor for singleton
         private FilterWizard() 

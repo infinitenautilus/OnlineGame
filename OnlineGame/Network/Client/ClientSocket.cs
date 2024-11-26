@@ -17,6 +17,8 @@ namespace OnlineGame.Network.Client
         private readonly Socket _socket = newSocket ?? throw new ArgumentNullException(nameof(newSocket));
         private bool _disposed;
 
+        public int TerminalColumns { get; set; } = 80;
+
         public static Guid Id { get; } = Guid.NewGuid();
         public string Name { get; private set; } = $"Client_{Id}";
 
@@ -72,7 +74,7 @@ namespace OnlineGame.Network.Client
 
                 // If RemoteEndPoint is null or not an IPEndPoint, notify and handle gracefully.
                 Scribe.Notification($"User {Name} had no valid IP.");
-                await WriteMessageAsync("Sorry, you have no valid IP.");
+                await WriteLineAsync("Sorry you don't have a valid network address.");
 
                 return IPAddress.Parse("0.0.0.0");
             }
@@ -98,57 +100,19 @@ namespace OnlineGame.Network.Client
         public event EventHandler? Disconnected;
         public event EventHandler<SocketException>? SocketError;
 
-        public async Task SendClearScreenAsync(CancellationToken cancellationToken = default)
+        // Lazy function to write out
+        public async Task WriteAsync(string message, CancellationToken cancellationToken = default)
         {
             try
             {
-                const string clearScreenCommand = "\x1b[2J"; // ANSI escape code to clear screen
-                await WriteMessageAsync(clearScreenCommand, cancellationToken);
-            }
-            catch(Exception ex)
-            {
-                Scribe.Error(ex);
-            }
-        }
+                if (string.IsNullOrEmpty(message))
+                    throw new ArgumentException("Message cannot be null or whitespace.", nameof(message));
 
-        public async Task SendMessageAsync(string message, CancellationToken cancellationToken = default)
-        {
-            await WriteMessageAsync(message, cancellationToken);
-        }
+                string filtered = UniversalTranslator.Instance.TranslateMessageToANSI(message);
 
-        public async Task SendMessageLineAsync(string message, CancellationToken cancellationToken = default)
-        {
-            await WriteMessageAsync(message + Environment.NewLine, cancellationToken);
-        }
+                byte[] buffer = Encoding.UTF8.GetBytes(filtered);
 
-        public async Task SendANSIMessageAsync(string message, CancellationToken cancellationToken = default)
-        {
-            string filtered;
-            
-            filtered = UniversalTranslator.Instance.TranslateMessage(message);
-
-            await WriteMessageAsync(filtered, cancellationToken);
-        }
-
-        public async Task SendANSIMessageLineAsync(string message, CancellationToken cancellationToken = default)
-        {
-            string filtered;
-
-            filtered = UniversalTranslator.Instance.TranslateMessage(message + Environment.NewLine);
-
-            await WriteMessageAsync(filtered, cancellationToken);
-        }
-
-        private async Task WriteMessageAsync(string message, CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrEmpty(message))
-                throw new ArgumentException("Message cannot be null or whitespace.", nameof(message));
-
-            byte[] buffer = Encoding.UTF8.GetBytes(message);
-            
-            try
-            {
-                if(!IsSocketConnected())
+                if (!IsSocketConnected())
                 {
                     Disconnect();
                     return;
@@ -156,13 +120,26 @@ namespace OnlineGame.Network.Client
 
                 await _socket.SendAsync(buffer, SocketFlags.None, cancellationToken);
             }
-            catch(SocketException ex)
+            catch (SocketException ex)
             {
                 Scribe.Error(ex);
             }
-            catch(OperationCanceledException)
+            catch (OperationCanceledException)
             {
                 Scribe.Scry("SendMessageAsync operation was canceled.");
+            }
+            catch (Exception ex)
+            {
+                Scribe.Error(ex);
+            }
+        }
+
+        // Lazy function to write with new line to client
+        public async Task WriteLineAsync(string message)
+        {
+            try
+            {
+                await WriteAsync(message + Environment.NewLine);
             }
             catch(Exception ex)
             {
@@ -170,7 +147,8 @@ namespace OnlineGame.Network.Client
             }
         }
 
-        public async Task<string> ReceiveRawMessageAsync(CancellationToken cancellationToken = default)
+        // Lazy function receive a string
+        public async Task<string> ReceiveAsync(CancellationToken cancellationToken = default)
         {
             byte[] buffer = new byte[1024];
 
@@ -197,7 +175,7 @@ namespace OnlineGame.Network.Client
                 string receivedMessage = Encoding.ASCII.GetString(buffer, 0, bytesReceived);
 
                 // Clean up Telnet-specific artifacts and trim the message
-                string telnetCleanedMessage = UniversalTranslator.CleanTelnetInput(receivedMessage);
+                string telnetCleanedMessage = UniversalTranslator.CleanTelnetInput(receivedMessage, TerminalColumns);
 
                 // Ignore empty or whitespace-only messages
                 if (string.IsNullOrWhiteSpace(telnetCleanedMessage))
@@ -205,12 +183,6 @@ namespace OnlineGame.Network.Client
                     return string.Empty;
                 }
 
-                // Log the cleaned message
-                Scribe.Scry($"Received Raw Message: {receivedMessage}");
-                Scribe.Scry($"telnetCleanedMessage: {telnetCleanedMessage}");
-                
-                await SendMessageLineAsync($"Received: {receivedMessage}", CancellationToken.None);
-                
                 return telnetCleanedMessage;
             }
             catch (SocketException)
@@ -231,17 +203,6 @@ namespace OnlineGame.Network.Client
                 Scribe.Error(ex);
                 return string.Empty;
             }
-        }
-
-
-
-        public async Task<string> ReceiveANSIMessageAsync(CancellationToken cancellationToken= default)
-        {
-            string unfiltered = await ReceiveRawMessageAsync(cancellationToken);
-
-            string filtered = UniversalTranslator.Instance.TranslateMessage(unfiltered);
-
-            return filtered;
         }
 
         public void Disconnect()

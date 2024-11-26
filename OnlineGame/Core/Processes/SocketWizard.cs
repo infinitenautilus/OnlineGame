@@ -24,8 +24,8 @@ namespace OnlineGame.Core.Processes
 
 
         // Current connected clients
-        private readonly ThreadSafeList<ClientSocket> _currentClients = new();
-        public IReadOnlyCollection<ClientSocket> CurrentClients => _currentClients.ToList();
+        private readonly ThreadSafeList<ClientSocket> _currentClients = [];
+        public IReadOnlyCollection<ClientSocket> CurrentClients => [.. _currentClients];
 
         public string Name => "SocketWizard";
 
@@ -132,7 +132,7 @@ namespace OnlineGame.Core.Processes
             {
                 foreach (ClientSocket client in _currentClients.ToList())
                 {
-                    await client.SendANSIMessageAsync(message);
+                    await client.WriteLineAsync(message);
                 }
 
             }

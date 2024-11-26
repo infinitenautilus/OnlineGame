@@ -10,6 +10,6 @@ namespace OnlineGame.Game.Interfaces
 {
     public interface ILiving : IHealthComponent, IGameObject
     {
-
+        bool IsLiving { get; set; }
     }
 }
